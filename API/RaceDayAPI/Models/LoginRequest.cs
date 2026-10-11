@@ -8,4 +8,14 @@
 
         public string Role { get; set; }
     }
+
+    public class CreateEnrolmentRequest
+    {
+        public int CategoryID { get; set; }
+    }
+
+    public class UpdateEnrolmentRequest
+    {
+        public int CategoryID { get; set; }
+    }
 }
