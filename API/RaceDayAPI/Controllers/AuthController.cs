@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -29,8 +30,15 @@ namespace RaceDayAPI.Controllers
 
         // POST: api/Auth/register
         [HttpPost("register")]
+        [HttpPost("/api/participants/register")]
+        [HttpPost("/api/organizers/register")]
         public async Task<IActionResult> Register(RegisterRequest request)
         {
+            if (Request.Path.StartsWithSegments("/api/participants"))
+                request.Role = "Participant";
+            else if (Request.Path.StartsWithSegments("/api/organizers"))
+                request.Role = "Organiser";
+
             if (request.Role != "Participant" &&
                 request.Role != "Organiser")
             {
@@ -95,8 +103,15 @@ namespace RaceDayAPI.Controllers
 
         // POST: api/Auth/login
         [HttpPost("login")]
+        [HttpPost("/api/participants/login")]
+        [HttpPost("/api/organizers/login")]
         public async Task<IActionResult> Login(LoginRequest request)
         {
+            if (Request.Path.StartsWithSegments("/api/participants"))
+                request.Role = "Participant";
+            else if (Request.Path.StartsWithSegments("/api/organizers"))
+                request.Role = "Organiser";
+
             if (request.Role != "Participant" &&
                 request.Role != "Organiser")
             {
@@ -196,9 +211,12 @@ namespace RaceDayAPI.Controllers
                 new Claim(ClaimTypes.Role, role)
             };
 
+            var jwtKey = _configuration["Jwt:Key"]
+                ?? throw new InvalidOperationException(
+                    "JWT signing key is missing from configuration.");
+
             var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(
-                    _configuration["Jwt:Key"]));
+                Encoding.UTF8.GetBytes(jwtKey));
 
             var credentials = new SigningCredentials(
                 key,
@@ -215,6 +233,22 @@ namespace RaceDayAPI.Controllers
 
             return new JwtSecurityTokenHandler()
                 .WriteToken(token);
+        }
+
+        [Authorize(Roles = "Participant")]
+        [HttpPost("/api/participants/logout")]
+        public IActionResult LogoutParticipant()
+        {
+            // JWT authentication is stateless. The token remains valid
+            // until it expires unless a token revocation mechanism is added.
+            return Ok(new { message = "Logout successful." });
+        }
+
+        [Authorize(Roles = "Organiser")]
+        [HttpPost("/api/organizers/logout")]
+        public IActionResult LogoutOrganizer()
+        {
+            return Ok(new { message = "Logout successful." });
         }
     }
 }

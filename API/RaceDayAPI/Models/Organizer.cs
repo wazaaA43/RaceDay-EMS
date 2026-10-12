@@ -12,8 +12,8 @@ namespace RaceDayAPI.Models
 
         public string Email { get; set; }
 
-        public string PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = string.Empty;
 
-        public ICollection<Event> Events { get; set; }
+        public ICollection<Event> Events { get; set; } = new List<Event>();
     }
 }
