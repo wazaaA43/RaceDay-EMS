@@ -13,7 +13,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Install .NET 8
+      - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -21,7 +21,7 @@ jobs:
       - name: Restore API
         run: dotnet restore API/RaceDayAPI/RaceDayAPI.csproj
 
-      - name: Restore tests
+      - name: Restore test project
         run: dotnet restore API/RaceDayAPI.Tests/RaceDayAPI.Tests.csproj
 
       - name: Build API
