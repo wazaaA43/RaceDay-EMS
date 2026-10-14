@@ -46,8 +46,21 @@ namespace RaceDayAPI.Tests
         {
             using var context = CreateContext();
 
+            context.Events.Add(new RaceDayAPI.Models.Event
+            {
+                EventID = 1,
+                EventName = "Test Run",
+                Description = "Test event",
+                EventDate = DateTime.Today.AddDays(7),
+                Location = "Pretoria",
+                Distance = 5,
+                EventType = "Run",
+                OrganizerID = 1
+            });
+
             context.Categories.Add(new Category
             {
+                CategoryID = 1,
                 CategoryName = "Open",
                 CategoryType = "Age",
                 EventID = 1

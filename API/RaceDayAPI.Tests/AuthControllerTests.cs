@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.AspNetCore.Http;
 using RaceDayAPI.Controllers;
 using RaceDayAPI.Data;
 using RaceDayAPI.Models;
@@ -10,6 +11,19 @@ namespace RaceDayAPI.Tests
 {
     public class AuthControllerTests
     {
+        private static AuthController CreateController(
+             RaceDayDbContext context)
+        {
+            var controller = new AuthController(context, CreateConfiguration());
+
+            controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            };
+
+            return controller;
+        }
+
         private static RaceDayDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<RaceDayDbContext>()
@@ -36,7 +50,7 @@ namespace RaceDayAPI.Tests
         public async Task Register_ValidParticipant_ReturnsCreated()
         {
             using var context = CreateContext();
-            var controller = new AuthController(context, CreateConfiguration());
+            var controller = CreateController(context);
 
             var request = new RegisterRequest
             {
@@ -74,7 +88,7 @@ namespace RaceDayAPI.Tests
 
             await context.SaveChangesAsync();
 
-            var controller = new AuthController(context, CreateConfiguration());
+            var controller = CreateController(context);
 
             var request = new RegisterRequest
             {
@@ -94,7 +108,7 @@ namespace RaceDayAPI.Tests
         public async Task Register_ShortPassword_ReturnsBadRequest()
         {
             using var context = CreateContext();
-            var controller = new AuthController(context, CreateConfiguration());
+            var controller = CreateController(context);
 
             var request = new RegisterRequest
             {
@@ -115,7 +129,7 @@ namespace RaceDayAPI.Tests
         public async Task Login_UnknownEmail_ReturnsUnauthorized()
         {
             using var context = CreateContext();
-            var controller = new AuthController(context, CreateConfiguration());
+            var controller = CreateController(context);
 
             var request = new LoginRequest
             {
