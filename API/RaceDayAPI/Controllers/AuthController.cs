@@ -1,13 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using RaceDayAPI.Data;
 using RaceDayAPI.Models;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
 
 namespace RaceDayAPI.Controllers
 {
@@ -16,18 +12,26 @@ namespace RaceDayAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly RaceDayDbContext _context;
-        private readonly IConfiguration _configuration;
         private readonly PasswordHasher<object> _passwordHasher = new();
 
+        // IConfiguration is kept in the constructor so the existing unit tests still compile
         public AuthController(RaceDayDbContext context, IConfiguration configuration)
         {
             _context = context;
-            _configuration = configuration;
         }
 
         // POST: api/Auth/register
         // POST: api/participants/register
         // POST: api/organizers/register
+        /// <summary>
+        /// Registers a new Participant or Organiser account. Also reachable as api/participants/register and api/organizers/register, which set the role automatically.
+        /// </summary>
+        /// <param name="request">First name, last name, email, password (minimum 8 characters) and role ("Participant" or "Organiser").</param>
+        /// <returns>A confirmation message. The password is stored as a hash, never in plain text.</returns>
+        /// <response code="201">Account created.</response>
+        /// <response code="400">Missing details, short password, invalid role or email already in use.</response>
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [HttpPost("register")]
         [HttpPost("/api/participants/register")]
         [HttpPost("/api/organizers/register")]
@@ -88,6 +92,17 @@ namespace RaceDayAPI.Controllers
         // POST: api/Auth/login
         // POST: api/participants/login
         // POST: api/organizers/login
+        /// <summary>
+        /// Logs in with email, password and role. On success the server creates a server-side session that stores the user id and role; the browser keeps only the session cookie, which is sent automatically on every later request.
+        /// </summary>
+        /// <param name="request">Email, password and role ("Participant" or "Organiser"). The role is set automatically on api/participants/login and api/organizers/login.</param>
+        /// <returns>The logged-in user's details. The session is created on the server.</returns>
+        /// <response code="200">Login successful, session started.</response>
+        /// <response code="400">Missing details or invalid role.</response>
+        /// <response code="401">Invalid email or password.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [HttpPost("login")]
         [HttpPost("/api/participants/login")]
         [HttpPost("/api/organizers/login")]
@@ -146,7 +161,12 @@ namespace RaceDayAPI.Controllers
                 email = organizer.Email;
             }
 
-            string token = GenerateJwtToken(userId, firstName, lastName, email, request.Role);
+            // Start a fresh server-side session and store who is logged in and their role
+            HttpContext.Session.Clear();
+            HttpContext.Session.SetString("UserId", userId.ToString());
+            HttpContext.Session.SetString("FirstName", firstName);
+            HttpContext.Session.SetString("Role", request.Role);
+
             return Ok(new
             {
                 message = "Login successful.",
@@ -154,53 +174,44 @@ namespace RaceDayAPI.Controllers
                 firstName,
                 lastName,
                 email,
-                role = request.Role,
-                token
+                role = request.Role
             });
         }
 
-        // JWTs are stateless: this endpoint confirms logout, but the client must discard its token.
-        // The token remains valid until expiry unless server-side revocation is implemented.
+        /// <summary>
+        /// Logs a Participant out by clearing their server-side session.
+        /// </summary>
+        /// <returns>A logout confirmation message.</returns>
+        /// <response code="200">Logout confirmed.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize(Roles = "Participant")]
         [HttpPost("/api/participants/logout")]
-        public IActionResult LogoutParticipant() =>
-            Ok(new { message = "Logout successful. Discard the token on the client." });
+        public IActionResult LogoutParticipant()
+        {
+            HttpContext.Session.Clear();
+            return Ok(new { message = "Logout successful. Your session has been ended." });
+        }
 
+        /// <summary>
+        /// Logs an Organiser out by clearing their server-side session.
+        /// </summary>
+        /// <returns>A logout confirmation message.</returns>
+        /// <response code="200">Logout confirmed.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize(Roles = "Organiser")]
         [HttpPost("/api/organizers/logout")]
-        public IActionResult LogoutOrganizer() =>
-            Ok(new { message = "Logout successful. Discard the token on the client." });
-
-        private string GenerateJwtToken(int userId, string firstName, string lastName, string email, string role)
+        public IActionResult LogoutOrganizer()
         {
-            string jwtKey = _configuration["Jwt:Key"]
-                ?? throw new InvalidOperationException("JWT signing key is missing from configuration.");
-            string issuer = _configuration["Jwt:Issuer"]
-                ?? throw new InvalidOperationException("JWT issuer is missing from configuration.");
-            string audience = _configuration["Jwt:Audience"]
-                ?? throw new InvalidOperationException("JWT audience is missing from configuration.");
-
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Name, firstName),
-                new Claim(ClaimTypes.GivenName, firstName),
-                new Claim(ClaimTypes.Surname, lastName),
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Role, role)
-            };
-
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var token = new JwtSecurityToken(
-                issuer: issuer,
-                audience: audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(
-                    Convert.ToDouble(_configuration["Jwt:ExpiryMinutes"] ?? "60")),
-                signingCredentials: credentials);
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            HttpContext.Session.Clear();
+            return Ok(new { message = "Logout successful. Your session has been ended." });
         }
     }
 }
