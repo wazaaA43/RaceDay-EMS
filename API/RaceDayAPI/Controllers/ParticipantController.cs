@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDayAPI.Data;
@@ -9,14 +8,16 @@ using System.Security.Claims;
 namespace RaceDayAPI.Controllers
 {
     [ApiController]
-    [Route("api/participants")]
+    [Route("api/[controller]")]
     [Authorize(Roles = "Participant")]
     public class ParticipantController : ControllerBase
     {
         private readonly RaceDayDbContext _context;
-        private readonly PasswordHasher<object> _passwordHasher = new();
 
-        public ParticipantController(RaceDayDbContext context) => _context = context;
+        public ParticipantController(RaceDayDbContext context)
+        {
+            _context = context;
+        }
 
         private int GetParticipantId()
         {
@@ -24,79 +25,118 @@ namespace RaceDayAPI.Controllers
             return int.TryParse(id, out int participantId) ? participantId : 0;
         }
 
+        // GET: api/participant/profile
+        /// <summary>
+        /// Participant only. Views the logged-in participant's own profile.
+        /// </summary>
+        /// <returns>Id, first name, last name and email (never the password).</returns>
+        /// <response code="200">Profile returned.</response>
+        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        /// <response code="404">Profile not found.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpGet("profile")]
-        public async Task<IActionResult> GetProfile()
+        public async Task<ActionResult<Participant>> GetProfile()
         {
-            int id = GetParticipantId();
-            var participant = await _context.Participants.AsNoTracking()
-                .Where(p => p.ParticipantID == id)
-                .Select(p => new { p.ParticipantID, p.FirstName, p.LastName, p.Email })
-                .FirstOrDefaultAsync();
+            var participant = await _context.Participants
+                .FindAsync(GetParticipantId());
 
-            return participant == null
-                ? NotFound(new { message = "Participant profile not found." })
-                : Ok(participant);
+            if (participant == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(new ProfileResponse
+            {
+                Id = participant.ParticipantID,
+                FirstName = participant.FirstName,
+                LastName = participant.LastName,
+                Email = participant.Email
+            });
         }
 
+        // PUT: api/participant/profile
+        /// <summary>
+        /// Participant only. Updates the logged-in participant's first name, last name and email.
+        /// </summary>
+        /// <param name="participant">The new first name, last name and email.</param>
+        /// <returns>No content when successful.</returns>
+        /// <response code="204">Updated or deleted successfully (no content returned).</response>
+        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        /// <response code="404">Profile not found.</response>
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile(UpdateParticipantProfileRequest request)
+        public async Task<IActionResult> UpdateProfile(Participant participant)
         {
-            if (string.IsNullOrWhiteSpace(request.FirstName) ||
-                string.IsNullOrWhiteSpace(request.LastName) ||
-                string.IsNullOrWhiteSpace(request.Email))
-                return BadRequest(new { message = "First name, last name and email are required." });
+            var existingParticipant = await _context.Participants
+                .FindAsync(GetParticipantId());
 
-            int id = GetParticipantId();
-            var participant = await _context.Participants.FindAsync(id);
-            if (participant == null)
-                return NotFound(new { message = "Participant not found." });
+            if (existingParticipant == null)
+            {
+                return NotFound();
+            }
 
-            string email = request.Email.Trim();
-            bool emailExists = await _context.Participants.AnyAsync(p => p.Email == email && p.ParticipantID != id)
-                || await _context.Organizers.AnyAsync(o => o.Email == email);
-            if (emailExists)
-                return BadRequest(new { message = "This email address is already in use." });
+            existingParticipant.FirstName = participant.FirstName;
+            existingParticipant.LastName = participant.LastName;
+            existingParticipant.Email = participant.Email;
 
-            participant.FirstName = request.FirstName.Trim();
-            participant.LastName = request.LastName.Trim();
-            participant.Email = email;
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Profile updated successfully." });
+
+            return NoContent();
         }
 
-        [HttpPut("password")]
-        public async Task<IActionResult> ChangePassword(ChangeParticipantPasswordRequest request)
+        // GET: api/participant/enrolments
+        /// <summary>
+        /// Participant only. Lists the logged-in participant's enrolments with event, category and result.
+        /// </summary>
+        /// <returns>A list of enrolments.</returns>
+        /// <response code="200">Enrolments returned.</response>
+        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [HttpGet("enrolments")]
+        public async Task<IActionResult> GetEnrolments()
         {
-            if (string.IsNullOrWhiteSpace(request.CurrentPassword) ||
-                string.IsNullOrWhiteSpace(request.NewPassword))
-                return BadRequest(new { message = "Both passwords are required." });
-            if (request.NewPassword.Length < 8)
-                return BadRequest(new { message = "The new password must be at least 8 characters." });
+            var enrolments = await _context.Enrolments
+                .Where(e => e.ParticipantID == GetParticipantId())
+                .Include(e => e.Event)
+                .Include(e => e.Category)
+                .Include(e => e.Result)
+                .ToListAsync();
 
-            var participant = await _context.Participants.FindAsync(GetParticipantId());
-            if (participant == null)
-                return NotFound(new { message = "Participant not found." });
-
-            var verification = _passwordHasher.VerifyHashedPassword(participant, participant.PasswordHash, request.CurrentPassword);
-            if (verification == PasswordVerificationResult.Failed)
-                return Unauthorized(new { message = "Current password is incorrect." });
-
-            participant.PasswordHash = _passwordHasher.HashPassword(participant, request.NewPassword);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Password changed successfully." });
+            return Ok(enrolments);
         }
-    }
 
-    public class UpdateParticipantProfileRequest
-    {
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-    }
+        // GET: api/participant/results
+        /// <summary>
+        /// Participant only. Lists the logged-in participant's own race results.
+        /// </summary>
+        /// <returns>A list of results with finish time and position.</returns>
+        /// <response code="200">Results returned.</response>
+        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [HttpGet("results")]
+        public async Task<IActionResult> GetResults()
+        {
+            var results = await _context.Results
+                .Include(r => r.Enrolment)
+                .ThenInclude(e => e.Event)
+                .Where(r => r.Enrolment.ParticipantID == GetParticipantId())
+                .ToListAsync();
 
-    public class ChangeParticipantPasswordRequest
-    {
-        public string CurrentPassword { get; set; } = string.Empty;
-        public string NewPassword { get; set; } = string.Empty;
+            return Ok(results);
+        }
     }
 }
