@@ -1,49 +1,67 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using RaceDayAPI.Data;
-using System.Text;
+using RaceDayAPI.Security;
+using System.Reflection;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // Stops [ApiController] demanding navigation properties (e.g. Event.Organizer) in request bodies
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+})
+    .AddJsonOptions(options =>
+    {
+        // Stops "object cycle" errors when entities reference each other (Event -> Categories -> Event)
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
 // Database connection
 builder.Services.AddDbContext<RaceDayDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("RaceDayConnection")));
 
-// JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrWhiteSpace(jwtKey))
+// Server-side session management: the session data (user id and role) is kept on the server,
+// the browser only receives a session id cookie.
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
 {
-    throw new InvalidOperationException(
-        "JWT Key is missing from appsettings.json.");
-}
+    options.Cookie.Name = ".RaceDay.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.IdleTimeout = TimeSpan.FromMinutes(60);
+});
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey))
-        };
-    });
+// Authentication scheme that reads the logged-in user and role from the session
+builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+        SessionAuthenticationHandler.SchemeName, null);
 
 builder.Services.AddAuthorization();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "RaceDay Event Management API",
+        Version = "v1",
+        Description = "API for participants and organisers to manage race events, categories, enrolments and results. Log in through the Auth endpoints; the server-side session cookie is then sent automatically by the browser."
+    });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+});
 
 var app = builder.Build();
 
@@ -56,7 +74,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Authentication MUST come before Authorization
+// Order matters: Session -> Authentication -> Authorization
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
