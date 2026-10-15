@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace RaceDayAPI.Models
 {
@@ -12,6 +13,7 @@ namespace RaceDayAPI.Models
 
         public string Email { get; set; }
 
+        [JsonIgnore]
         public string PasswordHash { get; set; } = string.Empty;
 
         public ICollection<Event> Events { get; set; } = new List<Event>();

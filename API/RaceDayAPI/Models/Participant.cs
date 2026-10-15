@@ -1,4 +1,6 @@
-﻿namespace RaceDayAPI.Models
+﻿using System.Text.Json.Serialization;
+
+namespace RaceDayAPI.Models
 {
     public class Participant
     {
@@ -10,6 +12,7 @@
 
         public string Email { get; set; }
 
+        [JsonIgnore]
         public string PasswordHash { get; set; }
 
         public ICollection<Enrolment> Enrolments { get; set; }
