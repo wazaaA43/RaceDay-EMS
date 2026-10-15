@@ -43,7 +43,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of results.</returns>
         /// <response code="200">Results returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -68,7 +68,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="id">The result ID.</param>
         /// <returns>The matching result.</returns>
         /// <response code="200">Result returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Result not found.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -112,7 +112,7 @@ namespace RaceDayAPI.Controllers
         /// <returns>The newly created result.</returns>
         /// <response code="201">Result captured.</response>
         /// <response code="400">Invalid time or position, or a result already exists for this enrolment.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
         /// <response code="404">Enrolment not found.</response>
         [ProducesResponseType(StatusCodes.Status201Created)]
@@ -167,7 +167,7 @@ namespace RaceDayAPI.Controllers
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
         /// <response code="400">ID mismatch or invalid time/position.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Result not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -219,7 +219,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="id">The result ID.</param>
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Result not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]

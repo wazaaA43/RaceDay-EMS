@@ -31,7 +31,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of enrolments with participant, event, category and result.</returns>
         /// <response code="200">Enrolments returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -57,7 +57,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of the participant's enrolments.</returns>
         /// <response code="200">Enrolments returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -83,7 +83,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="id">The enrolment ID.</param>
         /// <returns>The matching enrolment.</returns>
         /// <response code="200">Enrolment returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Enrolment not found.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -129,7 +129,7 @@ namespace RaceDayAPI.Controllers
         /// <returns>The newly created enrolment.</returns>
         /// <response code="201">Enrolment recorded.</response>
         /// <response code="400">Event missing or passed, category not part of the event, or already enrolled.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -187,7 +187,7 @@ namespace RaceDayAPI.Controllers
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
         /// <response code="400">A result is already recorded.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Enrolment not found for this participant.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]

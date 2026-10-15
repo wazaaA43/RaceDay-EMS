@@ -31,7 +31,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>Id, first name, last name and email (never the password).</returns>
         /// <response code="200">Profile returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -65,7 +65,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="organizer">The new first name, last name and email.</param>
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -98,7 +98,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of the organiser's events.</returns>
         /// <response code="200">Events returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -121,7 +121,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="id">The event ID.</param>
         /// <returns>The matching event.</returns>
         /// <response code="200">Event returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Event not found for this organiser.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]

@@ -31,7 +31,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>Id, first name, last name and email (never the password).</returns>
         /// <response code="200">Profile returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -65,7 +65,7 @@ namespace RaceDayAPI.Controllers
         /// <param name="participant">The new first name, last name and email.</param>
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -98,7 +98,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of enrolments.</returns>
         /// <response code="200">Enrolments returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -122,7 +122,7 @@ namespace RaceDayAPI.Controllers
         /// </summary>
         /// <returns>A list of results with finish time and position.</returns>
         /// <response code="200">Results returned.</response>
-        /// <response code="401">No valid token supplied: log in and authorise first.</response>
+        /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
