@@ -27,4 +27,4 @@ Every push builds the API and runs all unit tests with GitHub Actions.
 ![Successful CI build](docs/ci-green-build.png)
 
 ## Demo video
-PASTE_YOUTUBE_LINK_HERE
+https://youtu.be/NMEQDEgP2VY 
