@@ -67,18 +67,17 @@ namespace RaceDayAPI.Tests
 
             var controller = new EventController(context);
 
-            var item = new RaceDayAPI.Models.Event
+            var request = new EventRequest
             {
                 EventName = "",
                 Description = "Invalid event",
                 EventDate = DateTime.Today.AddDays(7),
                 Location = "Pretoria",
                 Distance = 5,
-                EventType = "Run",
-                OrganizerID = 1
+                EventType = "Run"
             };
 
-            var result = await controller.CreateEvent(item);
+            var result = await controller.CreateEvent(request);
 
             Assert.IsType<BadRequestObjectResult>(result.Result);
         }

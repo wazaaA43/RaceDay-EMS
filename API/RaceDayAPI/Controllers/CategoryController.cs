@@ -88,7 +88,7 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Organiser only. Defines a new age or distance category (for example Under 20, Senior, 10km) for one of the organiser's own events.
         /// </summary>
-        /// <param name="category">Category name, category type and the EventID it belongs to.</param>
+        /// <param name="request">Category name, category type and the EventID it belongs to.</param>
         /// <returns>The newly created category.</returns>
         /// <response code="201">Category created.</response>
         /// <response code="400">Category name or type missing.</response>
@@ -102,16 +102,16 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = "Organiser")]
         [HttpPost]
-        public async Task<ActionResult<Category>> CreateCategory(Category category)
+        public async Task<ActionResult<Category>> CreateCategory(CreateCategoryRequest request)
         {
-            if (string.IsNullOrWhiteSpace(category.CategoryName) ||
-                string.IsNullOrWhiteSpace(category.CategoryType))
+            if (string.IsNullOrWhiteSpace(request.CategoryName) ||
+                string.IsNullOrWhiteSpace(request.CategoryType))
             {
                 return BadRequest("Category name and type are required.");
             }
 
             var item = await _context.Events
-                .FirstOrDefaultAsync(e => e.EventID == category.EventID);
+                .FirstOrDefaultAsync(e => e.EventID == request.EventID);
 
             if (item == null)
             {
@@ -123,8 +123,12 @@ namespace RaceDayAPI.Controllers
                 return Forbid();
             }
 
-            category.CategoryName = category.CategoryName.Trim();
-            category.CategoryType = category.CategoryType.Trim();
+            var category = new Category
+            {
+                CategoryName = request.CategoryName.Trim(),
+                CategoryType = request.CategoryType.Trim(),
+                EventID = request.EventID
+            };
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
@@ -140,10 +144,10 @@ namespace RaceDayAPI.Controllers
         /// Organiser only. Updates the name and type of a category on the organiser's own event.
         /// </summary>
         /// <param name="id">The category ID in the URL.</param>
-        /// <param name="category">The updated category; its CategoryID must match the URL ID.</param>
+        /// <param name="request">The updated category name and type.</param>
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
-        /// <response code="400">ID mismatch or name/type missing.</response>
+        /// <response code="400">Name or type missing.</response>
         /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Category not found.</response>
@@ -154,13 +158,8 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = "Organiser")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(int id, Category category)
+        public async Task<IActionResult> UpdateCategory(int id, UpdateCategoryRequest request)
         {
-            if (id != category.CategoryID)
-            {
-                return BadRequest("The ID in the URL does not match the category ID.");
-            }
-
             var existingCategory = await _context.Categories
                 .Include(c => c.Event)
                 .FirstOrDefaultAsync(c => c.CategoryID == id);
@@ -175,14 +174,14 @@ namespace RaceDayAPI.Controllers
                 return Forbid();
             }
 
-            if (string.IsNullOrWhiteSpace(category.CategoryName) ||
-                string.IsNullOrWhiteSpace(category.CategoryType))
+            if (string.IsNullOrWhiteSpace(request.CategoryName) ||
+                string.IsNullOrWhiteSpace(request.CategoryType))
             {
                 return BadRequest("Category name and type are required.");
             }
 
-            existingCategory.CategoryName = category.CategoryName.Trim();
-            existingCategory.CategoryType = category.CategoryType.Trim();
+            existingCategory.CategoryName = request.CategoryName.Trim();
+            existingCategory.CategoryType = request.CategoryType.Trim();
 
             await _context.SaveChangesAsync();
 
