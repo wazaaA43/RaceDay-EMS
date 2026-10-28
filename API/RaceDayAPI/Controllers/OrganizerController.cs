@@ -62,18 +62,20 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Organiser only. Updates the logged-in organiser's first name, last name and email.
         /// </summary>
-        /// <param name="organizer">The new first name, last name and email.</param>
+        /// <param name="request">The new first name, last name and email.</param>
         /// <returns>No content when successful.</returns>
-        /// <response code="204">Updated or deleted successfully (no content returned).</response>
+        /// <response code="204">Updated successfully (no content returned).</response>
+        /// <response code="400">Missing details or the email address is already in use.</response>
         /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile(Organizer organizer)
+        public async Task<IActionResult> UpdateProfile(ProfileUpdateRequest request)
         {
             var existingOrganizer = await _context.Organizers
                 .FindAsync(GetOrganizerId());
@@ -83,9 +85,29 @@ namespace RaceDayAPI.Controllers
                 return NotFound();
             }
 
-            existingOrganizer.FirstName = organizer.FirstName;
-            existingOrganizer.LastName = organizer.LastName;
-            existingOrganizer.Email = organizer.Email;
+            if (string.IsNullOrWhiteSpace(request.FirstName) ||
+                string.IsNullOrWhiteSpace(request.LastName) ||
+                string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest("First name, last name and email are required.");
+            }
+
+            string email = request.Email.Trim();
+
+            bool emailInUse =
+                await _context.Organizers.AnyAsync(o =>
+                    o.Email == email &&
+                    o.OrganizerID != existingOrganizer.OrganizerID) ||
+                await _context.Participants.AnyAsync(p => p.Email == email);
+
+            if (emailInUse)
+            {
+                return BadRequest("This email address is already in use.");
+            }
+
+            existingOrganizer.FirstName = request.FirstName.Trim();
+            existingOrganizer.LastName = request.LastName.Trim();
+            existingOrganizer.Email = email;
 
             await _context.SaveChangesAsync();
 

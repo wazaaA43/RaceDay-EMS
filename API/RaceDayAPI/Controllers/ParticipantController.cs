@@ -62,18 +62,20 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Participant only. Updates the logged-in participant's first name, last name and email.
         /// </summary>
-        /// <param name="participant">The new first name, last name and email.</param>
+        /// <param name="request">The new first name, last name and email.</param>
         /// <returns>No content when successful.</returns>
-        /// <response code="204">Updated or deleted successfully (no content returned).</response>
+        /// <response code="204">Updated successfully (no content returned).</response>
+        /// <response code="400">Missing details or the email address is already in use.</response>
         /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
         /// <response code="404">Profile not found.</response>
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile(Participant participant)
+        public async Task<IActionResult> UpdateProfile(ProfileUpdateRequest request)
         {
             var existingParticipant = await _context.Participants
                 .FindAsync(GetParticipantId());
@@ -83,9 +85,29 @@ namespace RaceDayAPI.Controllers
                 return NotFound();
             }
 
-            existingParticipant.FirstName = participant.FirstName;
-            existingParticipant.LastName = participant.LastName;
-            existingParticipant.Email = participant.Email;
+            if (string.IsNullOrWhiteSpace(request.FirstName) ||
+                string.IsNullOrWhiteSpace(request.LastName) ||
+                string.IsNullOrWhiteSpace(request.Email))
+            {
+                return BadRequest("First name, last name and email are required.");
+            }
+
+            string email = request.Email.Trim();
+
+            bool emailInUse =
+                await _context.Participants.AnyAsync(p =>
+                    p.Email == email &&
+                    p.ParticipantID != existingParticipant.ParticipantID) ||
+                await _context.Organizers.AnyAsync(o => o.Email == email);
+
+            if (emailInUse)
+            {
+                return BadRequest("This email address is already in use.");
+            }
+
+            existingParticipant.FirstName = request.FirstName.Trim();
+            existingParticipant.LastName = request.LastName.Trim();
+            existingParticipant.Email = email;
 
             await _context.SaveChangesAsync();
 
