@@ -125,7 +125,7 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Participant only. Enters an event by selecting one of its categories. The link between participant, event and category is recorded; the participant is taken from the token.
         /// </summary>
-        /// <param name="enrolment">The EventID and the CategoryID being entered.</param>
+        /// <param name="request">The EventID and the CategoryID being entered.</param>
         /// <returns>The newly created enrolment.</returns>
         /// <response code="201">Enrolment recorded.</response>
         /// <response code="400">Event missing or passed, category not part of the event, or already enrolled.</response>
@@ -137,10 +137,10 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize(Roles = "Participant")]
         [HttpPost]
-        public async Task<ActionResult<Enrolment>> CreateEnrolment(Enrolment enrolment)
+        public async Task<ActionResult<Enrolment>> CreateEnrolment(CreateEnrolmentRequest request)
         {
             var eventExists = await _context.Events
-                .AnyAsync(e => e.EventID == enrolment.EventID &&
+                .AnyAsync(e => e.EventID == request.EventID &&
                                e.EventDate >= DateTime.Today);
 
             if (!eventExists)
@@ -149,8 +149,8 @@ namespace RaceDayAPI.Controllers
             }
 
             var categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryID == enrolment.CategoryID &&
-                               c.EventID == enrolment.EventID);
+                .AnyAsync(c => c.CategoryID == request.CategoryID &&
+                               c.EventID == request.EventID);
 
             if (!categoryExists)
             {
@@ -161,14 +161,19 @@ namespace RaceDayAPI.Controllers
 
             var duplicate = await _context.Enrolments.AnyAsync(e =>
                 e.ParticipantID == participantId &&
-                e.EventID == enrolment.EventID);
+                e.EventID == request.EventID);
 
             if (duplicate)
             {
                 return BadRequest("You are already enrolled in this event.");
             }
 
-            enrolment.ParticipantID = participantId;
+            var enrolment = new Enrolment
+            {
+                ParticipantID = participantId,
+                EventID = request.EventID,
+                CategoryID = request.CategoryID
+            };
 
             _context.Enrolments.Add(enrolment);
             await _context.SaveChangesAsync();

@@ -77,7 +77,7 @@ namespace RaceDayAPI.Tests
             var (raceEvent, raceCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(10));
             var controller = CreateController(context, 5);
 
-            var result = await controller.CreateEnrolment(new Enrolment
+            var result = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
@@ -99,7 +99,7 @@ namespace RaceDayAPI.Tests
             var (_, otherCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(20));
             var controller = CreateController(context, 5);
 
-            var result = await controller.CreateEnrolment(new Enrolment
+            var result = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = firstEvent.EventID,
                 CategoryID = otherCategory.CategoryID
@@ -117,12 +117,12 @@ namespace RaceDayAPI.Tests
             var (raceEvent, raceCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(10));
             var controller = CreateController(context, 5);
 
-            await controller.CreateEnrolment(new Enrolment
+            await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
             });
-            var second = await controller.CreateEnrolment(new Enrolment
+            var second = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
@@ -140,7 +140,7 @@ namespace RaceDayAPI.Tests
             var (raceEvent, raceCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(-3));
             var controller = CreateController(context, 5);
 
-            var result = await controller.CreateEnrolment(new Enrolment
+            var result = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
@@ -157,7 +157,7 @@ namespace RaceDayAPI.Tests
             using var context = CreateContext();
             var (raceEvent, raceCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(10));
             var controller = CreateController(context, 5);
-            await controller.CreateEnrolment(new Enrolment
+            await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
@@ -176,7 +176,7 @@ namespace RaceDayAPI.Tests
         {
             using var context = CreateContext();
             var (raceEvent, raceCategory) = await SeedEventWithCategory(context, DateTime.Today.AddDays(10));
-            await CreateController(context, 5).CreateEnrolment(new Enrolment
+            await CreateController(context, 5).CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = raceEvent.EventID,
                 CategoryID = raceCategory.CategoryID
