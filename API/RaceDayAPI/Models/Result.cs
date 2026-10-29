@@ -10,6 +10,8 @@
 
         public int Position { get; set; }
 
+        public bool IsPublished { get; set; }
+
         public Enrolment Enrolment { get; set; }
     }
 }
