@@ -59,9 +59,40 @@ namespace RaceDayMVC.Services
                 return default;
             }
 
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new SessionExpiredException();
+            }
+
             response.EnsureSuccessStatusCode();
 
             return await response.Content.ReadFromJsonAsync<T>();
+        }
+
+        // Enrols the logged-in participant in an event under the chosen category
+        public async Task<ApiResult> EnrolAsync(int eventId, int categoryId)
+        {
+            using var request = CreateRequest(HttpMethod.Post, "api/enrolment");
+            request.Content = JsonContent.Create(new { eventID = eventId, categoryID = categoryId });
+
+            using var response = await _http.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new SessionExpiredException();
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new ApiResult { Success = true };
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return new ApiResult { Error = "Only participants can enrol in events." };
+            }
+
+            return new ApiResult { Error = await ReadErrorAsync(response) };
         }
 
         // Registers a new Participant or Organiser account
