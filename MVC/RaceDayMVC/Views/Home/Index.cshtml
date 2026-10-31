@@ -1,0 +1,32 @@
+﻿@model List<RaceDayMVC.Models.EventModel>
+
+@{
+    ViewData["Title"] = "Upcoming Events";
+}
+
+<h1>Upcoming Events</h1>
+
+@if (ViewBag.ApiError != null)
+{
+    <div class="alert alert-danger">@ViewBag.ApiError</div>
+}
+else if (!Model.Any())
+{
+    <p class="text-muted">No upcoming events yet. Check back soon.</p>
+}
+
+<div class="row">
+    @foreach (var item in Model)
+    {
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">@item.EventName</h5>
+                    <p class="card-text">@item.Description</p>
+                    <p class="mb-0"><strong>@item.EventDate.ToString("dd MMM yyyy")</strong> · @item.Location</p>
+                    <p class="mb-0">@item.Distance km · @item.EventType</p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
