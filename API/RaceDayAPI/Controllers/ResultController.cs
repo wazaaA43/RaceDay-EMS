@@ -160,6 +160,62 @@ namespace RaceDayAPI.Controllers
                 result);
         }
 
+        // POST: api/result/event/1/publish
+        /// <summary>
+        /// Organiser only. Publishes every captured result for one of the organiser's own events, once the event has taken place.
+        /// </summary>
+        /// <param name="eventId">The event ID.</param>
+        /// <returns>No content when successful.</returns>
+        /// <response code="204">Results published (no content returned).</response>
+        /// <response code="400">The event has not taken place yet, or no results have been captured.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
+        /// <response code="404">Event not found.</response>
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Organiser")]
+        [HttpPost("event/{eventId}/publish")]
+        public async Task<IActionResult> PublishEventResults(int eventId)
+        {
+            var raceEvent = await _context.Events.FindAsync(eventId);
+
+            if (raceEvent == null)
+            {
+                return NotFound("Event not found.");
+            }
+
+            if (raceEvent.OrganizerID != GetOrganizerId())
+            {
+                return Forbid();
+            }
+
+            if (raceEvent.EventDate.Date > DateTime.Today)
+            {
+                return BadRequest("Results can only be published after the event has taken place.");
+            }
+
+            var results = await _context.Results
+                .Where(r => r.Enrolment.EventID == eventId)
+                .ToListAsync();
+
+            if (!results.Any())
+            {
+                return BadRequest("Capture at least one result before publishing.");
+            }
+
+            foreach (var result in results)
+            {
+                result.IsPublished = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // PUT: api/result/1
         /// <summary>
         /// Organiser only. Corrects the finish time and position of a result on the organiser's own event.

@@ -152,13 +152,25 @@ namespace RaceDayAPI.Controllers
         [HttpGet("results")]
         public async Task<IActionResult> GetResults()
         {
+            int participantId = GetParticipantId();
+
+            // Only published results are shown; the finisher count is the number of published results for that event
             var results = await _context.Results
-                .Include(r => r.Enrolment)
-                .ThenInclude(e => e.Event)
-                .Where(r => r.Enrolment.ParticipantID == GetParticipantId())
+                .Where(r => r.IsPublished && r.Enrolment.ParticipantID == participantId)
+                .Select(r => new ParticipantResultResponse
+                {
+                    ResultID = r.ResultID,
+                    EventName = r.Enrolment.Event.EventName,
+                    EventDate = r.Enrolment.Event.EventDate,
+                    CategoryName = r.Enrolment.Category.CategoryName,
+                    FinishTime = r.FinishTime,
+                    Position = r.Position,
+                    TotalFinishers = _context.Results.Count(x =>
+                        x.IsPublished && x.Enrolment.EventID == r.Enrolment.EventID)
+                })
                 .ToListAsync();
 
-            return Ok(results);
+            return Ok(results.OrderByDescending(r => r.EventDate).ToList());
         }
     }
 }
