@@ -330,5 +330,105 @@ namespace RaceDayMVC.Controllers
 
             return RedirectToAction(nameof(Enrolments), new { id = eventId });
         }
+
+        public async Task<IActionResult> Results(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var all = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment");
+
+                var rows = (all ?? new List<OrganiserEnrolmentModel>())
+                    .Where(e => e.EventID == id)
+                    .OrderBy(e => e.Participant?.LastName)
+                    .ToList();
+
+                return View(new ResultsViewModel
+                {
+                    Event = item,
+                    Rows = rows,
+                    IsConcluded = item.EventDate.Date <= DateTime.Today
+                });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load the results page right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveResult(int eventId, int enrolmentId, int resultId, string? finishTime, int position)
+        {
+            var formats = new[] { @"hh\:mm\:ss", @"h\:mm\:ss" };
+
+            if (!TimeSpan.TryParseExact(finishTime?.Trim(), formats,
+                    System.Globalization.CultureInfo.InvariantCulture, out var time) || time <= TimeSpan.Zero)
+            {
+                TempData["Error"] = "Enter the finish time as hh:mm:ss, for example 00:52:30.";
+                return RedirectToAction(nameof(Results), new { id = eventId });
+            }
+
+            if (position < 1)
+            {
+                TempData["Error"] = "The finishing position must be 1 or higher.";
+                return RedirectToAction(nameof(Results), new { id = eventId });
+            }
+
+            try
+            {
+                var result = resultId == 0
+                    ? await _api.PostAsync("api/result", new { enrolmentID = enrolmentId, finishTime = time, position = position })
+                    : await _api.PutAsync($"api/result/{resultId}", new { finishTime = time, position = position });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Result saved. Remember to publish when you are done.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Results), new { id = eventId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PublishResults(int eventId)
+        {
+            try
+            {
+                var result = await _api.PostAsync($"api/result/event/{eventId}/publish", new { });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Results published. Participants can now see them.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Results), new { id = eventId });
+        }
     }
 }

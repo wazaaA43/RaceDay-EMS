@@ -20,6 +20,8 @@
         public PersonModel? Participant { get; set; }
 
         public CategoryModel? Category { get; set; }
+
+        public ResultModel? Result { get; set; }
     }
 
     public class CategoriesViewModel

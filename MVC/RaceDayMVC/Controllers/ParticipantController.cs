@@ -92,5 +92,19 @@ namespace RaceDayMVC.Controllers
             TempData["Success"] = "Your profile has been updated.";
             return RedirectToAction(nameof(Profile));
         }
+
+        public async Task<IActionResult> MyResults()
+        {
+            try
+            {
+                var list = await _api.GetAsync<List<ParticipantResultModel>>("api/participant/results");
+                return View(list ?? new List<ParticipantResultModel>());
+            }
+            catch (HttpRequestException)
+            {
+                ViewBag.ApiError = "We could not load your results right now. Please try again shortly.";
+                return View(new List<ParticipantResultModel>());
+            }
+        }
     }
 }

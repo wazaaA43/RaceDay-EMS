@@ -1,0 +1,84 @@
+﻿@model RaceDayMVC.Models.ResultsViewModel
+
+@{
+    ViewData["Title"] = "Results";
+}
+
+<a asp-action="Events" class="btn btn-link ps-0">&larr; Back to my events</a>
+
+<h1>Results</h1>
+<p class="text-muted">@Model.Event.EventName &middot; @Model.Event.EventDate.ToString("dd MMM yyyy")</p>
+
+@if (!Model.IsConcluded)
+{
+    <div class="alert alert-info">
+        Results can be captured once the event has taken place (@Model.Event.EventDate.ToString("dd MMM yyyy")).
+    </div>
+}
+else if (!Model.Rows.Any())
+{
+    <p class="text-muted">Nobody enrolled in this event, so there are no results to capture.</p>
+}
+else
+{
+    <p>Enter each finisher's time as hh:mm:ss and their finishing position, save each row, then publish when you are happy.</p>
+
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Participant</th>
+                    <th>Category</th>
+                    <th>Finish time (hh:mm:ss)</th>
+                    <th>Position</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Rows)
+                {
+                    var formId = "row-" + item.EnrolmentID;
+                    var timeValue = item.Result != null ? item.Result.FinishTime.ToString("c") : "";
+                    var positionValue = item.Result != null ? item.Result.Position.ToString() : "";
+                    var badge = item.Result == null ? "bg-secondary"
+                    : item.Result.IsPublished ? "bg-success"
+                    : "bg-warning text-dark";
+                    var badgeText = item.Result == null ? "No result"
+                    : item.Result.IsPublished ? "Published"
+                    : "Draft";
+
+                    <tr>
+                        <td>@item.Participant?.FirstName @item.Participant?.LastName</td>
+                        <td>@item.Category?.CategoryName</td>
+                        <td>
+                            <input form="@formId" name="finishTime" value="@timeValue" class="form-control form-control-sm"
+                                   placeholder="00:52:30" style="max-width: 9rem;" aria-label="Finish time" />
+                        </td>
+                        <td>
+                            <input form="@formId" name="position" type="number" min="1" value="@positionValue"
+                                   class="form-control form-control-sm" style="max-width: 6rem;" aria-label="Position" />
+                        </td>
+                        <td><span class="badge @badge">@badgeText</span></td>
+                        <td class="text-end">
+                            <form id="@formId" asp-action="SaveResult" method="post">
+                                <input type="hidden" name="eventId" value="@Model.Event.EventID" />
+                                <input type="hidden" name="enrolmentId" value="@item.EnrolmentID" />
+                                <input type="hidden" name="resultId" value="@(item.Result?.ResultID ?? 0)" />
+                                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Rows.Any(r => r.Result != null))
+    {
+        <form asp-action="PublishResults" method="post">
+            <input type="hidden" name="eventId" value="@Model.Event.EventID" />
+            <button type="submit" class="btn btn-success">Publish results</button>
+        </form>
+    }
+}
