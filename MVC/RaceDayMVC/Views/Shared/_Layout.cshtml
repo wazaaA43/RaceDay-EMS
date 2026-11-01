@@ -25,7 +25,16 @@
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
                             <a class="nav-link" asp-controller="Home" asp-action="Index">Events</a>
-                        </li>
+                        </li>             
+                        @if (role == "Participant")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Participant" asp-action="MyEnrolments">My Enrolments</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Participant" asp-action="Profile">Profile</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav align-items-sm-center">
                         @if (role == null)

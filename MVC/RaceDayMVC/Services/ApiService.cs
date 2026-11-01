@@ -95,6 +95,32 @@ namespace RaceDayMVC.Services
             return new ApiResult { Error = await ReadErrorAsync(response) };
         }
 
+        // PUT: sends the changes to the API and reports whether it accepted them
+        public async Task<ApiResult> PutAsync(string url, object body)
+        {
+            using var request = CreateRequest(HttpMethod.Put, url);
+            request.Content = JsonContent.Create(body);
+
+            using var response = await _http.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new SessionExpiredException();
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new ApiResult { Success = true };
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return new ApiResult { Error = "You do not have permission to do that." };
+            }
+
+            return new ApiResult { Error = await ReadErrorAsync(response) };
+        }
+
         // Registers a new Participant or Organiser account
         public async Task<ApiResult> RegisterAsync(RegisterViewModel model)
         {
