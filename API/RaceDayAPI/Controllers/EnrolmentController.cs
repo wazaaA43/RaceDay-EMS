@@ -184,6 +184,63 @@ namespace RaceDayAPI.Controllers
                 enrolment);
         }
 
+        // PUT: api/enrolment/1/status
+        /// <summary>
+        /// Organiser only. Sets an enrolment's status to Pending or Confirmed, provided the enrolment is for one of the organiser's own events.
+        /// </summary>
+        /// <param name="id">The enrolment ID.</param>
+        /// <param name="request">The new status: "Pending" or "Confirmed".</param>
+        /// <returns>No content when successful.</returns>
+        /// <response code="204">Status updated (no content returned).</response>
+        /// <response code="400">Status is not Pending or Confirmed.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
+        /// <response code="404">Enrolment not found.</response>
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Organiser")]
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateEnrolmentStatus(int id, UpdateEnrolmentStatusRequest request)
+        {
+            string? status = null;
+
+            if (string.Equals(request.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Pending";
+            }
+            else if (string.Equals(request.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Confirmed";
+            }
+
+            if (status == null)
+            {
+                return BadRequest("Status must be Pending or Confirmed.");
+            }
+
+            var enrolment = await _context.Enrolments
+                .Include(e => e.Event)
+                .FirstOrDefaultAsync(e => e.EnrolmentID == id);
+
+            if (enrolment == null)
+            {
+                return NotFound();
+            }
+
+            if (enrolment.Event.OrganizerID != GetUserId())
+            {
+                return Forbid();
+            }
+
+            enrolment.Status = status;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
         // DELETE: api/enrolment/1
         /// <summary>
         /// Participant only. Cancels the participant's own enrolment, unless a result has already been recorded for it.
