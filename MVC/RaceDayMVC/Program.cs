@@ -1,4 +1,9 @@
+using System.Globalization;
 using RaceDayMVC.Services;
+
+// One consistent number/date format everywhere (avoids comma vs point problems with distances like 10.5)
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateBuilder(args);
 

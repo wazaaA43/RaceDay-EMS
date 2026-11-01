@@ -35,6 +35,12 @@
                                 <a class="nav-link" asp-controller="Participant" asp-action="Profile">Profile</a>
                             </li>
                         }
+                        @if (role == "Organiser")
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Organiser" asp-action="Events">My Events</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav align-items-sm-center">
                         @if (role == null)
