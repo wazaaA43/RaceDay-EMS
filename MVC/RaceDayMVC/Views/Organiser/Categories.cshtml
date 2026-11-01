@@ -1,0 +1,65 @@
+﻿@model RaceDayMVC.Models.CategoriesViewModel
+
+@{
+    ViewData["Title"] = "Categories";
+}
+
+<a asp-action="Events" class="btn btn-link ps-0">&larr; Back to my events</a>
+
+<h1>Categories</h1>
+<p class="text-muted">@Model.Event.EventName &middot; @Model.Event.EventDate.ToString("dd MMM yyyy")</p>
+
+@if (!Model.Categories.Any())
+{
+    <p class="text-muted">This event has no categories yet. Add the first one below.</p>
+}
+else
+{
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in Model.Categories)
+            {
+                <tr>
+                    <td>@category.CategoryName</td>
+                    <td>@category.CategoryType</td>
+                    <td class="text-end">
+                        <form asp-action="DeleteCategory" method="post" class="d-inline"
+                              onsubmit="return confirm('Delete this category?');">
+                            <input type="hidden" name="categoryId" value="@category.CategoryID" />
+                            <input type="hidden" name="eventId" value="@Model.Event.EventID" />
+                            <button type="submit" class="btn btn-outline-danger btn-sm">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<h2 class="h4 mt-4">Add a category</h2>
+
+<form asp-action="AddCategory" method="post" class="row g-2 align-items-end">
+    <input type="hidden" name="eventId" value="@Model.Event.EventID" />
+
+    <div class="col-md-5">
+        <label for="categoryName" class="form-label">Name</label>
+        <input id="categoryName" name="categoryName" class="form-control" placeholder="e.g. Under 20, Senior, 10 km" required />
+    </div>
+    <div class="col-md-3">
+        <label for="categoryType" class="form-label">Type</label>
+        <select id="categoryType" name="categoryType" class="form-select">
+            <option value="Age">Age</option>
+            <option value="Distance">Distance</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary">Add</button>
+    </div>
+</form>

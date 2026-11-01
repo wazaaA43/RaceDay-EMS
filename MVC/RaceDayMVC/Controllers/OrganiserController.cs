@@ -189,5 +189,146 @@ namespace RaceDayMVC.Controllers
 
             return RedirectToAction(nameof(Events));
         }
+
+        public async Task<IActionResult> Categories(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var categories = await _api.GetAsync<List<CategoryModel>>($"api/category/event/{id}");
+
+                return View(new CategoriesViewModel
+                {
+                    Event = item,
+                    Categories = categories ?? new List<CategoryModel>()
+                });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load that event right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddCategory(int eventId, string categoryName, string categoryType)
+        {
+            if (string.IsNullOrWhiteSpace(categoryName) || string.IsNullOrWhiteSpace(categoryType))
+            {
+                TempData["Error"] = "Please enter a category name and choose a type.";
+                return RedirectToAction(nameof(Categories), new { id = eventId });
+            }
+
+            try
+            {
+                var result = await _api.PostAsync("api/category", new
+                {
+                    categoryName = categoryName.Trim(),
+                    categoryType = categoryType,
+                    eventID = eventId
+                });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Category added.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Categories), new { id = eventId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int categoryId, int eventId)
+        {
+            try
+            {
+                var result = await _api.DeleteAsync($"api/category/{categoryId}");
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Category deleted.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Categories), new { id = eventId });
+        }
+
+        public async Task<IActionResult> Enrolments(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var all = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment");
+
+                var forEvent = (all ?? new List<OrganiserEnrolmentModel>())
+                    .Where(e => e.EventID == id)
+                    .OrderBy(e => e.Participant?.LastName)
+                    .ToList();
+
+                return View(new EnrolmentsViewModel { Event = item, Enrolments = forEvent });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load the enrolments right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetEnrolmentStatus(int enrolmentId, int eventId, string status)
+        {
+            try
+            {
+                var result = await _api.PutAsync($"api/enrolment/{enrolmentId}/status", new { status = status });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = $"Enrolment marked as {status}.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Enrolments), new { id = eventId });
+        }
     }
 }

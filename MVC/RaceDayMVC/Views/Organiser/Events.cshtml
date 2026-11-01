@@ -41,6 +41,8 @@ else
                         <td>@item.Distance km</td>
                         <td>@item.EventType</td>
                         <td class="text-end">
+                            <a asp-action="Categories" asp-route-id="@item.EventID" class="btn btn-outline-secondary btn-sm">Categories</a>
+                            <a asp-action="Enrolments" asp-route-id="@item.EventID" class="btn btn-outline-secondary btn-sm">Enrolments</a>
                             <a asp-action="EditEvent" asp-route-id="@item.EventID" class="btn btn-outline-primary btn-sm">Edit</a>
                             <a asp-action="DeleteEvent" asp-route-id="@item.EventID" class="btn btn-outline-danger btn-sm">Delete</a>
                         </td>
