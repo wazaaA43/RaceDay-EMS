@@ -50,6 +50,12 @@ namespace RaceDayMVC.Controllers
             }
 
             TempData["Success"] = $"Welcome, {HttpContext.Session.GetString("FirstName")}!";
+
+            if (HttpContext.Session.GetString("Role") == "Organiser")
+            {
+                return RedirectToAction("Dashboard", "Organiser");
+            }
+
             return RedirectToAction("Index", "Home");
         }
 

@@ -430,5 +430,43 @@ namespace RaceDayMVC.Controllers
 
             return RedirectToAction(nameof(Results), new { id = eventId });
         }
+
+        public async Task<IActionResult> Dashboard()
+        {
+            var model = new DashboardViewModel();
+
+            try
+            {
+                var events = await _api.GetAsync<List<EventModel>>("api/organizer/events")
+                    ?? new List<EventModel>();
+                var enrolments = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment")
+                    ?? new List<OrganiserEnrolmentModel>();
+
+                model.Rows = events
+                    .Select(e => new DashboardEventRow
+                    {
+                        Event = e,
+                        TotalEnrolments = enrolments.Count(x => x.EventID == e.EventID),
+                        PendingEnrolments = enrolments.Count(x => x.EventID == e.EventID && x.Status == "Pending"),
+                        IsUpcoming = e.EventDate.Date >= DateTime.Today,
+                        DaysUntil = (e.EventDate.Date - DateTime.Today).Days
+                    })
+                    .OrderBy(r => r.IsUpcoming ? 0 : 1)
+                    .ThenBy(r => r.IsUpcoming ? r.Event.EventDate : DateTime.MaxValue)
+                    .ThenByDescending(r => r.Event.EventDate)
+                    .ToList();
+
+                model.TotalEvents = model.Rows.Count;
+                model.UpcomingEvents = model.Rows.Count(r => r.IsUpcoming);
+                model.TotalEnrolments = model.Rows.Sum(r => r.TotalEnrolments);
+                model.PendingEnrolments = model.Rows.Sum(r => r.PendingEnrolments);
+            }
+            catch (HttpRequestException)
+            {
+                ViewBag.ApiError = "We could not load your dashboard right now. Please try again shortly.";
+            }
+
+            return View(model);
+        }
     }
 }
