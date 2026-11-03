@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDayAPI.Data;
 using RaceDayAPI.Models;
+using RaceDayAPI.Services;
 using System.Security.Claims;
 
 namespace RaceDayAPI.Controllers
@@ -54,7 +55,8 @@ namespace RaceDayAPI.Controllers
                 Id = participant.ParticipantID,
                 FirstName = participant.FirstName,
                 LastName = participant.LastName,
-                Email = participant.Email
+                Email = participant.Email,
+                ProfilePictureUrl = participant.ProfilePictureUrl
             });
         }
 
@@ -112,6 +114,56 @@ namespace RaceDayAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/participant/profile-picture
+        /// <summary>
+        /// Participant only. Uploads the logged-in participant's profile picture (JPG, PNG or WEBP, up to 2 MB). The image is stored in Azure Blob Storage.
+        /// </summary>
+        /// <param name="file">The image file.</param>
+        /// <returns>The public URL of the stored picture.</returns>
+        /// <response code="200">Picture stored; its URL is returned.</response>
+        /// <response code="400">No file, wrong file type or file too large.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Logged in, but the role or ownership does not allow this action.</response>
+        /// <response code="404">Profile not found.</response>
+        /// <response code="503">Image storage is not available.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        [HttpPost("profile-picture")]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file, [FromServices] IImageStorage storage)
+        {
+            var participant = await _context.Participants
+                .FindAsync(GetParticipantId());
+
+            if (participant == null)
+            {
+                return NotFound();
+            }
+
+            var error = await ImageValidator.ValidateAsync(file);
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            try
+            {
+                participant.ProfilePictureUrl = await storage.SaveAsync(file, "profiles");
+            }
+            catch (Exception)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Image storage is not available right now. Please try again later.");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { profilePictureUrl = participant.ProfilePictureUrl });
         }
 
         // GET: api/participant/enrolments

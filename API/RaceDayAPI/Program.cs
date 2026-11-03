@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RaceDayAPI.Data;
 using RaceDayAPI.Security;
+using RaceDayAPI.Services;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -43,6 +44,8 @@ builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
         SessionAuthenticationHandler.SchemeName, null);
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddSingleton<IImageStorage, BlobImageStorage>();
 
 builder.Services.AddEndpointsApiExplorer();
 

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDayAPI.Data;
 using RaceDayAPI.Models;
+using RaceDayAPI.Services;
 using System.Security.Claims;
 
 namespace RaceDayAPI.Controllers
@@ -209,6 +210,63 @@ namespace RaceDayAPI.Controllers
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/event/1/banner
+        /// <summary>
+        /// Organiser only. Uploads a banner image (JPG, PNG or WEBP, up to 2 MB) for one of the organiser's own events. The image is stored in Azure Blob Storage.
+        /// </summary>
+        /// <param name="id">The event ID.</param>
+        /// <param name="file">The image file.</param>
+        /// <returns>The public URL of the stored banner.</returns>
+        /// <response code="200">Banner stored; its URL is returned.</response>
+        /// <response code="400">No file, wrong file type or file too large.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
+        /// <response code="404">Event not found.</response>
+        /// <response code="503">Image storage is not available.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        [Authorize(Roles = "Organiser")]
+        [HttpPost("{id}/banner")]
+        public async Task<IActionResult> UploadBanner(int id, IFormFile file, [FromServices] IImageStorage storage)
+        {
+            var existingEvent = await _context.Events.FindAsync(id);
+
+            if (existingEvent == null)
+            {
+                return NotFound();
+            }
+
+            if (existingEvent.OrganizerID != GetOrganizerId())
+            {
+                return Forbid();
+            }
+
+            var error = await ImageValidator.ValidateAsync(file);
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            try
+            {
+                existingEvent.BannerUrl = await storage.SaveAsync(file, "banners");
+            }
+            catch (Exception)
+            {
+                // Storage not configured or Azure unreachable: no raw error details are returned
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Image storage is not available right now. Please try again later.");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { bannerUrl = existingEvent.BannerUrl });
         }
 
         // DELETE: api/event/1
