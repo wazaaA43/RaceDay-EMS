@@ -8,8 +8,34 @@
     <div class="col-md-6">
         <h1 class="mb-3">My Profile</h1>
 
+        <div class="d-flex align-items-center mb-4">
+            @if (!string.IsNullOrEmpty(Model.ProfilePictureUrl))
+            {
+                <img src="@Model.ProfilePictureUrl" alt="Your profile picture" class="rounded-circle me-3"
+                     style="width: 96px; height: 96px; object-fit: cover;" />
+            }
+            else
+            {
+                <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-3"
+                     style="width: 96px; height: 96px; font-size: 2rem;" aria-label="No profile picture">
+                    @(string.IsNullOrEmpty(Model.FirstName) ? "?" : Model.FirstName.Substring(0, 1).ToUpper())
+                </div>
+            }
+
+            <form asp-action="UploadProfilePicture" method="post" enctype="multipart/form-data">
+                <label for="picture" class="form-label mb-1">Profile picture</label>
+                <div class="input-group">
+                    <input id="picture" name="picture" type="file" class="form-control"
+                           accept=".jpg,.jpeg,.png,.webp" />
+                    <button type="submit" class="btn btn-outline-primary">Upload</button>
+                </div>
+                <div class="form-text">JPG, PNG or WEBP, up to 2 MB.</div>
+            </form>
+        </div>
+
         <form asp-action="Profile" method="post">
             <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="ProfilePictureUrl" />
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
             <div class="row">

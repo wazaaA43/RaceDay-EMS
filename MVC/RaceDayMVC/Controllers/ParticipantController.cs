@@ -93,6 +93,37 @@ namespace RaceDayMVC.Controllers
             return RedirectToAction(nameof(Profile));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile? picture)
+        {
+            if (picture == null || picture.Length == 0)
+            {
+                TempData["Error"] = "Please choose an image to upload.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            try
+            {
+                var result = await _api.UploadImageAsync("api/participant/profile-picture", picture);
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Profile picture updated.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Profile));
+        }
+
         public async Task<IActionResult> MyResults()
         {
             try
