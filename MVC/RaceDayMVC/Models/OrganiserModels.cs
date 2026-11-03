@@ -27,5 +27,10 @@ namespace RaceDayMVC.Models
         [Required(ErrorMessage = "Please choose an event type.")]
         [Display(Name = "Event type")]
         public string EventType { get; set; } = "Run";
+
+        [Display(Name = "Banner image (optional)")]
+        public IFormFile? Banner { get; set; }
+
+        public string? BannerUrl { get; set; }
     }
 }

@@ -8,7 +8,7 @@
     <div class="col-md-7">
         <h1 class="mb-3">Edit Event</h1>
 
-        <form asp-action="EditEvent" method="post">
+        <form asp-action="EditEvent" method="post" enctype="multipart/form-data">
             <partial name="_EventForm" model="Model" />
 
             <button type="submit" class="btn btn-primary">Save changes</button>

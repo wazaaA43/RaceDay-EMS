@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Net.Http.Headers;
 using RaceDayMVC.Models;
 
 namespace RaceDayMVC.Services
@@ -151,6 +152,67 @@ namespace RaceDayMVC.Services
         public async Task<ApiResult> DeleteAsync(string url)
         {
             using var request = CreateRequest(HttpMethod.Delete, url);
+            using var response = await _http.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new SessionExpiredException();
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                return new ApiResult { Success = true };
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return new ApiResult { Error = "You do not have permission to do that." };
+            }
+
+            return new ApiResult { Error = await ReadErrorAsync(response) };
+        }
+
+        // Creates an event and returns the new event's ID so a banner can be uploaded to it
+        public async Task<(ApiResult Result, int EventId)> CreateEventAsync(object body)
+        {
+            using var request = CreateRequest(HttpMethod.Post, "api/event");
+            request.Content = JsonContent.Create(body);
+
+            using var response = await _http.SendAsync(request);
+
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                throw new SessionExpiredException();
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                var created = await response.Content.ReadFromJsonAsync<EventModel>();
+                return (new ApiResult { Success = true }, created?.EventID ?? 0);
+            }
+
+            if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return (new ApiResult { Error = "You do not have permission to do that." }, 0);
+            }
+
+            return (new ApiResult { Error = await ReadErrorAsync(response) }, 0);
+        }
+
+        // Sends an image to the API (the API checks the type and size and stores it in Azure Blob Storage)
+        public async Task<ApiResult> UploadImageAsync(string url, IFormFile file)
+        {
+            using var request = CreateRequest(HttpMethod.Post, url);
+            using var content = new MultipartFormDataContent();
+            using var stream = file.OpenReadStream();
+            using var fileContent = new StreamContent(stream);
+
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType);
+
+            content.Add(fileContent, "file", file.FileName);
+            request.Content = content;
+
             using var response = await _http.SendAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)

@@ -29,6 +29,25 @@ namespace RaceDayMVC.Controllers
             };
         }
 
+        // Uploads a banner after the event has been saved; returns an error message, or null when it worked
+        private async Task<string?> TryUploadBannerAsync(int eventId, IFormFile? banner)
+        {
+            if (banner == null || banner.Length == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                var result = await _api.UploadImageAsync($"api/event/{eventId}/banner", banner);
+                return result.Success ? null : result.Error;
+            }
+            catch (HttpRequestException)
+            {
+                return "We could not reach RaceDay to upload the banner.";
+            }
+        }
+
         public async Task<IActionResult> Events()
         {
             try
@@ -63,15 +82,19 @@ namespace RaceDayMVC.Controllers
                 return View(model);
             }
 
+            int newEventId;
+
             try
             {
-                var result = await _api.PostAsync("api/event", ToRequest(model));
+                var created = await _api.CreateEventAsync(ToRequest(model));
 
-                if (!result.Success)
+                if (!created.Result.Success)
                 {
-                    ModelState.AddModelError(string.Empty, result.Error);
+                    ModelState.AddModelError(string.Empty, created.Result.Error);
                     return View(model);
                 }
+
+                newEventId = created.EventId;
             }
             catch (HttpRequestException)
             {
@@ -79,7 +102,17 @@ namespace RaceDayMVC.Controllers
                 return View(model);
             }
 
-            TempData["Success"] = "Event created.";
+            var bannerError = await TryUploadBannerAsync(newEventId, model.Banner);
+
+            if (bannerError == null)
+            {
+                TempData["Success"] = "Event created.";
+            }
+            else
+            {
+                TempData["Error"] = $"Event created, but the banner was not uploaded: {bannerError} You can add it by editing the event.";
+            }
+
             return RedirectToAction(nameof(Events));
         }
 
@@ -104,7 +137,8 @@ namespace RaceDayMVC.Controllers
                     EventDate = item.EventDate,
                     Location = item.Location,
                     Distance = item.Distance,
-                    EventType = item.EventType
+                    EventType = item.EventType,
+                    BannerUrl = item.BannerUrl
                 });
             }
             catch (HttpRequestException)
@@ -139,7 +173,17 @@ namespace RaceDayMVC.Controllers
                 return View(model);
             }
 
-            TempData["Success"] = "Event updated.";
+            var bannerError = await TryUploadBannerAsync(model.EventID, model.Banner);
+
+            if (bannerError == null)
+            {
+                TempData["Success"] = "Event updated.";
+            }
+            else
+            {
+                TempData["Error"] = $"Event updated, but the banner was not uploaded: {bannerError}";
+            }
+
             return RedirectToAction(nameof(Events));
         }
 
@@ -431,7 +475,7 @@ namespace RaceDayMVC.Controllers
             return RedirectToAction(nameof(Results), new { id = eventId });
         }
 
-        public async Task<IActionResult> Dashboard()
+                public async Task<IActionResult> Dashboard()
         {
             var model = new DashboardViewModel();
 

@@ -44,3 +44,19 @@
         <span asp-validation-for="EventType" class="text-danger"></span>
     </div>
 </div>
+
+<input type="hidden" asp-for="BannerUrl" />
+
+@if (!string.IsNullOrEmpty(Model.BannerUrl))
+{
+    <div class="mb-2">
+        <div class="form-label">Current banner</div>
+        <img src="@Model.BannerUrl" alt="Current event banner" class="img-fluid rounded" style="max-height: 160px;" />
+    </div>
+}
+
+<div class="mb-3">
+    <label asp-for="Banner" class="form-label"></label>
+    <input asp-for="Banner" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+    <div class="form-text">JPG, PNG or WEBP, up to 2 MB.</div>
+</div>
