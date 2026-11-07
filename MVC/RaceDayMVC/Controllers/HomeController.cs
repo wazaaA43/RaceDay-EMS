@@ -75,6 +75,11 @@ namespace RaceDayMVC.Controllers
             return View();
         }
 
+        public IActionResult HttpError(int code)
+        {
+            return View(code);
+        }
+
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

@@ -43,6 +43,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Wrong addresses (404) show a friendly page instead of a blank browser error
+app.UseStatusCodePagesWithReExecute("/Home/HttpError", "?code={0}");
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
