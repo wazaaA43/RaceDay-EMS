@@ -1,6 +1,12 @@
 ﻿@{
     var role = Context.Session.GetString("Role");
     var firstName = Context.Session.GetString("FirstName");
+    var controllerName = ViewContext.RouteData.Values["controller"]?.ToString();
+    var actionName = ViewContext.RouteData.Values["action"]?.ToString();
+
+    // Marks the menu item for the page the user is on
+    string Active(string controller, string action) =>
+        controllerName == controller && actionName == action ? "active" : "";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -8,57 +14,65 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - RaceDay</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/RaceDayMVC.styles.css" asp-append-version="true" />
 </head>
 <body>
+    <a class="visually-hidden-focusable" href="#main">Skip to main content</a>
+
     <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark mb-3">
+        <nav class="navbar navbar-expand-md navbar-dark rd-navbar mb-4">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-controller="Home" asp-action="Index">RaceDay</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <a class="navbar-brand" asp-controller="Home" asp-action="Index">Race<span>Day</span></a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"
+                        aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <div class="navbar-collapse collapse justify-content-between" id="mainNav">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Home" asp-action="Index">Events</a>
-                        </li>             
+                            <a class="nav-link @Active("Home", "Index")" asp-controller="Home" asp-action="Index">Events</a>
+                        </li>
                         @if (role == "Participant")
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Participant" asp-action="MyEnrolments">My Enrolments</a>
+                                <a class="nav-link @Active("Participant", "MyEnrolments")" asp-controller="Participant" asp-action="MyEnrolments">My Enrolments</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Participant" asp-action="Profile">Profile</a>
+                                <a class="nav-link @Active("Participant", "MyResults")" asp-controller="Participant" asp-action="MyResults">My Results</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Participant" asp-action="MyResults">My Results</a>
+                                <a class="nav-link @Active("Participant", "Profile")" asp-controller="Participant" asp-action="Profile">Profile</a>
                             </li>
                         }
                         @if (role == "Organiser")
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Organiser" asp-action="Events">My Events</a>
+                                <a class="nav-link @Active("Organiser", "Dashboard")" asp-controller="Organiser" asp-action="Dashboard">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @Active("Organiser", "Events")" asp-controller="Organiser" asp-action="Events">My Events</a>
                             </li>
                         }
                     </ul>
-                    <ul class="navbar-nav align-items-sm-center">
+                    <ul class="navbar-nav align-items-md-center">
                         @if (role == null)
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Login">Log in</a>
+                                <a class="nav-link @Active("Account", "Login")" asp-controller="Account" asp-action="Login">Log in</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" asp-controller="Account" asp-action="Register">Register</a>
+                                <a class="nav-link @Active("Account", "Register")" asp-controller="Account" asp-action="Register">Register</a>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <span class="navbar-text me-3">Hi, @firstName (@role)</span>
+                                <span class="navbar-text me-md-3 text-white-50">Hi, @firstName (@role)</span>
                             </li>
                             <li class="nav-item">
                                 <form asp-controller="Account" asp-action="Logout" method="post">
@@ -73,14 +87,14 @@
     </header>
 
     <div class="container">
-        <main role="main" class="pb-3">
+        <main id="main" role="main" class="pb-3">
             @if (TempData["Success"] != null)
             {
-                <div class="alert alert-success">@TempData["Success"]</div>
+                <div class="alert alert-success" role="status">@TempData["Success"]</div>
             }
             @if (TempData["Error"] != null)
             {
-                <div class="alert alert-danger">@TempData["Error"]</div>
+                <div class="alert alert-danger" role="alert">@TempData["Error"]</div>
             }
 
             @RenderBody()
@@ -89,7 +103,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 - RaceDay
+            &copy; 2026 RaceDay Event Management
         </div>
     </footer>
 
