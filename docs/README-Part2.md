@@ -24,7 +24,7 @@ Passwords are hashed. On login the user id and role are stored in a server-side 
 ## CI/CD
 Every push builds the API and runs all unit tests with GitHub Actions.
 
-![Successful CI build](docs/ci-green-build.png)
+![Successful CI build](ci-green-build.png)
 
 ## Demo video
 https://youtu.be/NMEQDEgP2VY 
