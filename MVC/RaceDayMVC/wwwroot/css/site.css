@@ -56,7 +56,7 @@ a {
         font-size: 1.6rem;
     }
 
-        .rd-navbar .navbar-brand span {
+        .rd-navbar .navbar-brand .rd-accent {
             color: var(--rd-accent);
         }
 
