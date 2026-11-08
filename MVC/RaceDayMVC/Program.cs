@@ -31,6 +31,7 @@ builder.Services.AddHttpClient<ApiService>(client =>
     }
 
     client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(30);
 })
 // Each user's API cookie is added by hand, so the client must not keep a shared cookie jar
 .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = false });

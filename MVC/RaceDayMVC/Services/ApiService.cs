@@ -36,6 +36,32 @@ namespace RaceDayMVC.Services
             return request;
         }
 
+        // Sends a request. If the API does not answer in time, this throws an HttpRequestException,
+        // which every controller already catches to show a friendly message instead of a crash.
+        // Only a real timeout is converted; any other cancellation is passed on unchanged.
+        private async Task<HttpResponseMessage> SendWithTimeoutAsync(HttpRequestMessage request)
+        {
+            try
+            {
+                return await _http.SendAsync(request);
+            }
+            catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
+            {
+                throw new HttpRequestException("The RaceDay API did not respond in time.", ex);
+            }
+        }
+
+        // Sends a JSON body with POST (used by register and login) with the same timeout handling
+        private async Task<HttpResponseMessage> PostJsonAsync(string url, object body)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = JsonContent.Create(body)
+            };
+
+            return await SendWithTimeoutAsync(request);
+        }
+
         // The API sends plain-text error messages; anything else gets a friendly default
         private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
         {
@@ -53,7 +79,7 @@ namespace RaceDayMVC.Services
         public async Task<T?> GetAsync<T>(string url)
         {
             using var request = CreateRequest(HttpMethod.Get, url);
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
@@ -76,7 +102,7 @@ namespace RaceDayMVC.Services
             using var request = CreateRequest(HttpMethod.Post, "api/enrolment");
             request.Content = JsonContent.Create(new { eventID = eventId, categoryID = categoryId });
 
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -102,7 +128,7 @@ namespace RaceDayMVC.Services
             using var request = CreateRequest(HttpMethod.Put, url);
             request.Content = JsonContent.Create(body);
 
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -128,7 +154,7 @@ namespace RaceDayMVC.Services
             using var request = CreateRequest(HttpMethod.Post, url);
             request.Content = JsonContent.Create(body);
 
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -152,7 +178,7 @@ namespace RaceDayMVC.Services
         public async Task<ApiResult> DeleteAsync(string url)
         {
             using var request = CreateRequest(HttpMethod.Delete, url);
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -178,7 +204,7 @@ namespace RaceDayMVC.Services
             using var request = CreateRequest(HttpMethod.Post, "api/event");
             request.Content = JsonContent.Create(body);
 
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -213,7 +239,7 @@ namespace RaceDayMVC.Services
             content.Add(fileContent, "file", file.FileName);
             request.Content = content;
 
-            using var response = await _http.SendAsync(request);
+            using var response = await SendWithTimeoutAsync(request);
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
@@ -245,7 +271,7 @@ namespace RaceDayMVC.Services
                 role = model.Role
             };
 
-            using var response = await _http.PostAsJsonAsync(
+            using var response = await PostJsonAsync(
                 $"api/{RoleSegment(model.Role)}/register", body);
 
             if (response.IsSuccessStatusCode)
@@ -266,7 +292,7 @@ namespace RaceDayMVC.Services
                 role = model.Role
             };
 
-            using var response = await _http.PostAsJsonAsync(
+            using var response = await PostJsonAsync(
                 $"api/{RoleSegment(model.Role)}/login", body);
 
             if (!response.IsSuccessStatusCode)
@@ -314,7 +340,7 @@ namespace RaceDayMVC.Services
                 try
                 {
                     using var request = CreateRequest(HttpMethod.Post, $"api/{RoleSegment(role)}/logout");
-                    using var response = await _http.SendAsync(request);
+                    using var response = await SendWithTimeoutAsync(request);
                 }
                 catch (HttpRequestException)
                 {
