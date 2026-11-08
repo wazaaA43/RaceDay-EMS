@@ -28,6 +28,7 @@ else
                     <th>Location</th>
                     <th>Category</th>
                     <th>Status</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -36,6 +37,7 @@ else
                     var badge = item.Status == "Confirmed" ? "bg-success"
                     : item.Status == "Pending" ? "bg-warning text-dark"
                     : "bg-secondary";
+                    var canCancel = item.Event != null && item.Event.EventDate.Date >= DateTime.Today;
 
                     <tr>
                         <td>
@@ -45,6 +47,15 @@ else
                         <td>@item.Event?.Location</td>
                         <td>@item.Category?.CategoryName</td>
                         <td><span class="badge @badge">@item.Status</span></td>
+                        <td class="text-end">
+                            @if (canCancel)
+                            {
+                                <form asp-action="CancelEnrolment" asp-route-id="@item.EnrolmentID" method="post" class="d-inline"
+                                      onsubmit="return confirm('Cancel your enrolment in this event?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Cancel enrolment</button>
+                                </form>
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

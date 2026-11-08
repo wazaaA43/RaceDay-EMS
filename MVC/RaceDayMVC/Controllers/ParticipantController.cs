@@ -124,6 +124,31 @@ namespace RaceDayMVC.Controllers
             return RedirectToAction(nameof(Profile));
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelEnrolment(int id)
+        {
+            try
+            {
+                var result = await _api.DeleteAsync($"api/enrolment/{id}");
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Your enrolment has been cancelled.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(MyEnrolments));
+        }
+
         public async Task<IActionResult> MyResults()
         {
             try
