@@ -56,16 +56,29 @@ namespace RaceDayAPI.Tests
             };
         }
 
+        private static EventRequest NewRequest()
+        {
+            return new EventRequest
+            {
+                EventName = "Pretoria Fun Run",
+                Description = "A 10 km fun run",
+                EventDate = DateTime.Today.AddDays(14),
+                Location = "Pretoria",
+                Distance = 10,
+                EventType = "Run"
+            };
+        }
+
         // Success: an organiser creates an event and it is saved against that organiser
-        [Fact]
+       [Fact]
         public async Task CreateEvent_AsOrganiser_SavesEventForLoggedInOrganiser()
         {
             using var context = CreateContext();
             var controller = CreateController(context, 7, "Organiser");
-            var item = NewEvent(0);
-            item.EventType = "run";
+            var request = NewRequest();
+            request.EventType = "run";
 
-            var result = await controller.CreateEvent(item);
+            var result = await controller.CreateEvent(request);
 
             Assert.IsType<CreatedAtActionResult>(result.Result);
             var saved = Assert.Single(context.Events);
@@ -73,16 +86,17 @@ namespace RaceDayAPI.Tests
             Assert.Equal("Run", saved.EventType);
         }
 
+
         // Failure: event type must be Run, Walk or Cycle
         [Fact]
         public async Task CreateEvent_InvalidEventType_ReturnsBadRequest()
         {
             using var context = CreateContext();
             var controller = CreateController(context, 1, "Organiser");
-            var item = NewEvent(1);
-            item.EventType = "Swim";
+            var request = NewRequest();
+            request.EventType = "Swim";
 
-            var result = await controller.CreateEvent(item);
+            var result = await controller.CreateEvent(request);
 
             Assert.IsType<BadRequestObjectResult>(result.Result);
             Assert.Empty(context.Events);
@@ -98,8 +112,7 @@ namespace RaceDayAPI.Tests
             await context.SaveChangesAsync();
 
             var controller = CreateController(context, 1, "Organiser");
-            var update = NewEvent(1);
-            update.EventID = existing.EventID;
+            var update = NewRequest();
             update.EventName = "Updated Fun Run";
 
             var result = await controller.UpdateEvent(existing.EventID, update);
@@ -118,8 +131,7 @@ namespace RaceDayAPI.Tests
             await context.SaveChangesAsync();
 
             var controller = CreateController(context, 2, "Organiser");
-            var update = NewEvent(1);
-            update.EventID = existing.EventID;
+            var update = NewRequest();
             update.EventName = "Hijacked";
 
             var result = await controller.UpdateEvent(existing.EventID, update);

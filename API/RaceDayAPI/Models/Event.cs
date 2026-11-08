@@ -16,6 +16,8 @@
 
         public string EventType { get; set; }
 
+        public string? BannerUrl { get; set; }
+
         public int OrganizerID { get; set; }
 
         public Organizer Organizer { get; set; }

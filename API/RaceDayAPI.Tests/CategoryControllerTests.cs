@@ -83,7 +83,7 @@ namespace RaceDayAPI.Tests
             using var context = CreateContext();
             var controller = CreateController(context, 1);
 
-            var category = new Category
+            var category = new CreateCategoryRequest
             {
                 CategoryName = "",
                 CategoryType = "Age",
@@ -101,7 +101,7 @@ namespace RaceDayAPI.Tests
             using var context = CreateContext();
             var controller = CreateController(context, 1);
 
-            var category = new Category
+            var category = new CreateCategoryRequest
             {
                 CategoryName = "Open",
                 CategoryType = "Age",
@@ -133,7 +133,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, 1);
 
-            var category = new Category
+            var category = new CreateCategoryRequest
             {
                 CategoryName = "Open",
                 CategoryType = "Age",

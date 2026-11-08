@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDayAPI.Data;
 using RaceDayAPI.Models;
+using RaceDayAPI.Services;
 using System.Security.Claims;
 
 namespace RaceDayAPI.Controllers
@@ -106,7 +107,7 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Organiser only. Creates an event owned by the logged-in organiser.
         /// </summary>
-        /// <param name="item">Event name, description, date, location, distance and event type (Run, Walk or Cycle).</param>
+        /// <param name="request">Event name, description, date, location, distance and event type (Run, Walk or Cycle).</param>
         /// <returns>The newly created event.</returns>
         /// <response code="201">Event created.</response>
         /// <response code="400">Missing details, distance not above zero, or invalid event type.</response>
@@ -118,26 +119,31 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize(Roles = "Organiser")]
         [HttpPost]
-        public async Task<ActionResult<Event>> CreateEvent(Event item)
+        public async Task<ActionResult<Event>> CreateEvent(EventRequest request)
         {
-            if (string.IsNullOrWhiteSpace(item.EventName) ||
-                string.IsNullOrWhiteSpace(item.Description) ||
-                string.IsNullOrWhiteSpace(item.Location) ||
-                item.Distance <= 0)
+            if (string.IsNullOrWhiteSpace(request.EventName) ||
+                string.IsNullOrWhiteSpace(request.Description) ||
+                string.IsNullOrWhiteSpace(request.Location) ||
+                request.Distance <= 0)
             {
                 return BadRequest("Valid event details are required.");
             }
 
-            if (!IsValidEventType(item.EventType))
+            if (!IsValidEventType(request.EventType))
             {
                 return BadRequest("Event type must be Run, Walk or Cycle.");
             }
 
-            item.EventName = item.EventName.Trim();
-            item.Description = item.Description.Trim();
-            item.Location = item.Location.Trim();
-            item.EventType = NormaliseEventType(item.EventType);
-            item.OrganizerID = GetOrganizerId();
+            var item = new Event
+            {
+                EventName = request.EventName.Trim(),
+                Description = request.Description.Trim(),
+                EventDate = request.EventDate,
+                Location = request.Location.Trim(),
+                Distance = request.Distance,
+                EventType = NormaliseEventType(request.EventType),
+                OrganizerID = GetOrganizerId()
+            };
 
             _context.Events.Add(item);
             await _context.SaveChangesAsync();
@@ -153,10 +159,10 @@ namespace RaceDayAPI.Controllers
         /// Organiser only. Updates one of the organiser's own events.
         /// </summary>
         /// <param name="id">The event ID in the URL.</param>
-        /// <param name="item">The updated event details; its EventID must match the URL ID.</param>
+        /// <param name="request">The updated event name, description, date, location, distance and event type (Run, Walk or Cycle).</param>
         /// <returns>No content when successful.</returns>
         /// <response code="204">Updated or deleted successfully (no content returned).</response>
-        /// <response code="400">ID mismatch, missing details or invalid event type.</response>
+        /// <response code="400">Missing details or invalid event type.</response>
         /// <response code="401">Not logged in: log in first.</response>
         /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
         /// <response code="404">Event not found.</response>
@@ -167,13 +173,8 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [Authorize(Roles = "Organiser")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateEvent(int id, Event item)
+        public async Task<IActionResult> UpdateEvent(int id, EventRequest request)
         {
-            if (id != item.EventID)
-            {
-                return BadRequest("The ID in the URL does not match the event ID.");
-            }
-
             var existingEvent = await _context.Events.FindAsync(id);
 
             if (existingEvent == null)
@@ -186,29 +187,86 @@ namespace RaceDayAPI.Controllers
                 return Forbid();
             }
 
-            if (string.IsNullOrWhiteSpace(item.EventName) ||
-                string.IsNullOrWhiteSpace(item.Description) ||
-                string.IsNullOrWhiteSpace(item.Location) ||
-                item.Distance <= 0)
+            if (string.IsNullOrWhiteSpace(request.EventName) ||
+                string.IsNullOrWhiteSpace(request.Description) ||
+                string.IsNullOrWhiteSpace(request.Location) ||
+                request.Distance <= 0)
             {
                 return BadRequest("Valid event details are required.");
             }
 
-            if (!IsValidEventType(item.EventType))
+            if (!IsValidEventType(request.EventType))
             {
                 return BadRequest("Event type must be Run, Walk or Cycle.");
             }
 
-            existingEvent.EventName = item.EventName.Trim();
-            existingEvent.Description = item.Description.Trim();
-            existingEvent.EventDate = item.EventDate;
-            existingEvent.Location = item.Location.Trim();
-            existingEvent.Distance = item.Distance;
-            existingEvent.EventType = NormaliseEventType(item.EventType);
+            existingEvent.EventName = request.EventName.Trim();
+            existingEvent.Description = request.Description.Trim();
+            existingEvent.EventDate = request.EventDate;
+            existingEvent.Location = request.Location.Trim();
+            existingEvent.Distance = request.Distance;
+            existingEvent.EventType = NormaliseEventType(request.EventType);
 
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        // POST: api/event/1/banner
+        /// <summary>
+        /// Organiser only. Uploads a banner image (JPG, PNG or WEBP, up to 2 MB) for one of the organiser's own events. The image is stored in Azure Blob Storage.
+        /// </summary>
+        /// <param name="id">The event ID.</param>
+        /// <param name="file">The image file.</param>
+        /// <returns>The public URL of the stored banner.</returns>
+        /// <response code="200">Banner stored; its URL is returned.</response>
+        /// <response code="400">No file, wrong file type or file too large.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
+        /// <response code="404">Event not found.</response>
+        /// <response code="503">Image storage is not available.</response>
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+        [Authorize(Roles = "Organiser")]
+        [HttpPost("{id}/banner")]
+        public async Task<IActionResult> UploadBanner(int id, IFormFile file, [FromServices] IImageStorage storage)
+        {
+            var existingEvent = await _context.Events.FindAsync(id);
+
+            if (existingEvent == null)
+            {
+                return NotFound();
+            }
+
+            if (existingEvent.OrganizerID != GetOrganizerId())
+            {
+                return Forbid();
+            }
+
+            var error = await ImageValidator.ValidateAsync(file);
+            if (error != null)
+            {
+                return BadRequest(error);
+            }
+
+            try
+            {
+                existingEvent.BannerUrl = await storage.SaveAsync(file, "banners");
+            }
+            catch (Exception)
+            {
+                // Storage not configured or Azure unreachable: no raw error details are returned
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Image storage is not available right now. Please try again later.");
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { bannerUrl = existingEvent.BannerUrl });
         }
 
         // DELETE: api/event/1

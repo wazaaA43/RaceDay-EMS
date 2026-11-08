@@ -1,0 +1,516 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using RaceDayMVC.Filters;
+using RaceDayMVC.Models;
+using RaceDayMVC.Services;
+
+namespace RaceDayMVC.Controllers
+{
+    [RoleRequired("Organiser")]
+    public class OrganiserController : Controller
+    {
+        private readonly ApiService _api;
+
+        public OrganiserController(ApiService api)
+        {
+            _api = api;
+        }
+
+        // The shape the API expects when creating or updating an event
+        private static object ToRequest(EventFormViewModel model)
+        {
+            return new
+            {
+                eventName = model.EventName.Trim(),
+                description = model.Description.Trim(),
+                eventDate = model.EventDate,
+                location = model.Location.Trim(),
+                distance = model.Distance,
+                eventType = model.EventType
+            };
+        }
+
+        // Uploads a banner after the event has been saved; returns an error message, or null when it worked
+        private async Task<string?> TryUploadBannerAsync(int eventId, IFormFile? banner)
+        {
+            if (banner == null || banner.Length == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                var result = await _api.UploadImageAsync($"api/event/{eventId}/banner", banner);
+                return result.Success ? null : result.Error;
+            }
+            catch (HttpRequestException)
+            {
+                return "We could not reach RaceDay to upload the banner.";
+            }
+        }
+
+        public async Task<IActionResult> Events()
+        {
+            try
+            {
+                var list = await _api.GetAsync<List<EventModel>>("api/organizer/events");
+                return View(list ?? new List<EventModel>());
+            }
+            catch (HttpRequestException)
+            {
+                ViewBag.ApiError = "We could not load your events right now. Please try again shortly.";
+                return View(new List<EventModel>());
+            }
+        }
+
+        [HttpGet]
+        public IActionResult CreateEvent()
+        {
+            return View(new EventFormViewModel { EventDate = DateTime.Today.AddDays(30).AddHours(8) });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateEvent(EventFormViewModel model)
+        {
+            if (model.EventDate <= DateTime.Now)
+            {
+                ModelState.AddModelError(nameof(model.EventDate), "The event date must be in the future.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            int newEventId;
+
+            try
+            {
+                var created = await _api.CreateEventAsync(ToRequest(model));
+
+                if (!created.Result.Success)
+                {
+                    ModelState.AddModelError(string.Empty, created.Result.Error);
+                    return View(model);
+                }
+
+                newEventId = created.EventId;
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "We could not reach RaceDay right now. Please try again shortly.");
+                return View(model);
+            }
+
+            var bannerError = await TryUploadBannerAsync(newEventId, model.Banner);
+
+            if (bannerError == null)
+            {
+                TempData["Success"] = "Event created.";
+            }
+            else
+            {
+                TempData["Error"] = $"Event created, but the banner was not uploaded: {bannerError} You can add it by editing the event.";
+            }
+
+            return RedirectToAction(nameof(Events));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditEvent(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                return View(new EventFormViewModel
+                {
+                    EventID = item.EventID,
+                    EventName = item.EventName,
+                    Description = item.Description,
+                    EventDate = item.EventDate,
+                    Location = item.Location,
+                    Distance = item.Distance,
+                    EventType = item.EventType,
+                    BannerUrl = item.BannerUrl
+                });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load that event right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditEvent(EventFormViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                var result = await _api.PutAsync($"api/event/{model.EventID}", ToRequest(model));
+
+                if (!result.Success)
+                {
+                    ModelState.AddModelError(string.Empty, result.Error);
+                    return View(model);
+                }
+            }
+            catch (HttpRequestException)
+            {
+                ModelState.AddModelError(string.Empty, "We could not reach RaceDay right now. Please try again shortly.");
+                return View(model);
+            }
+
+            var bannerError = await TryUploadBannerAsync(model.EventID, model.Banner);
+
+            if (bannerError == null)
+            {
+                TempData["Success"] = "Event updated.";
+            }
+            else
+            {
+                TempData["Error"] = $"Event updated, but the banner was not uploaded: {bannerError}";
+            }
+
+            return RedirectToAction(nameof(Events));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DeleteEvent(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                return View(item);
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load that event right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost, ActionName("DeleteEvent")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteEventConfirmed(int id)
+        {
+            try
+            {
+                var result = await _api.DeleteAsync($"api/event/{id}");
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Event deleted.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Events));
+        }
+
+        public async Task<IActionResult> Categories(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var categories = await _api.GetAsync<List<CategoryModel>>($"api/category/event/{id}");
+
+                return View(new CategoriesViewModel
+                {
+                    Event = item,
+                    Categories = categories ?? new List<CategoryModel>()
+                });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load that event right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddCategory(int eventId, string categoryName, string categoryType)
+        {
+            if (string.IsNullOrWhiteSpace(categoryName) || string.IsNullOrWhiteSpace(categoryType))
+            {
+                TempData["Error"] = "Please enter a category name and choose a type.";
+                return RedirectToAction(nameof(Categories), new { id = eventId });
+            }
+
+            try
+            {
+                var result = await _api.PostAsync("api/category", new
+                {
+                    categoryName = categoryName.Trim(),
+                    categoryType = categoryType,
+                    eventID = eventId
+                });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Category added.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Categories), new { id = eventId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int categoryId, int eventId)
+        {
+            try
+            {
+                var result = await _api.DeleteAsync($"api/category/{categoryId}");
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Category deleted.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Categories), new { id = eventId });
+        }
+
+        public async Task<IActionResult> Enrolments(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var all = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment");
+
+                var forEvent = (all ?? new List<OrganiserEnrolmentModel>())
+                    .Where(e => e.EventID == id)
+                    .OrderBy(e => e.Participant?.LastName)
+                    .ToList();
+
+                return View(new EnrolmentsViewModel { Event = item, Enrolments = forEvent });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load the enrolments right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetEnrolmentStatus(int enrolmentId, int eventId, string status)
+        {
+            try
+            {
+                var result = await _api.PutAsync($"api/enrolment/{enrolmentId}/status", new { status = status });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = $"Enrolment marked as {status}.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Enrolments), new { id = eventId });
+        }
+
+        public async Task<IActionResult> Results(int id)
+        {
+            try
+            {
+                var item = await _api.GetAsync<EventModel>($"api/organizer/events/{id}");
+
+                if (item == null)
+                {
+                    TempData["Error"] = "That event could not be found.";
+                    return RedirectToAction(nameof(Events));
+                }
+
+                var all = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment");
+
+                var rows = (all ?? new List<OrganiserEnrolmentModel>())
+                    .Where(e => e.EventID == id)
+                    .OrderBy(e => e.Participant?.LastName)
+                    .ToList();
+
+                return View(new ResultsViewModel
+                {
+                    Event = item,
+                    Rows = rows,
+                    IsConcluded = item.EventDate.Date <= DateTime.Today
+                });
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not load the results page right now. Please try again shortly.";
+                return RedirectToAction(nameof(Events));
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveResult(int eventId, int enrolmentId, int resultId, string? finishTime, int position)
+        {
+            var formats = new[] { @"hh\:mm\:ss", @"h\:mm\:ss" };
+
+            if (!TimeSpan.TryParseExact(finishTime?.Trim(), formats,
+                    System.Globalization.CultureInfo.InvariantCulture, out var time) || time <= TimeSpan.Zero)
+            {
+                TempData["Error"] = "Enter the finish time as hh:mm:ss, for example 00:52:30.";
+                return RedirectToAction(nameof(Results), new { id = eventId });
+            }
+
+            if (position < 1)
+            {
+                TempData["Error"] = "The finishing position must be 1 or higher.";
+                return RedirectToAction(nameof(Results), new { id = eventId });
+            }
+
+            try
+            {
+                var result = resultId == 0
+                    ? await _api.PostAsync("api/result", new { enrolmentID = enrolmentId, finishTime = time, position = position })
+                    : await _api.PutAsync($"api/result/{resultId}", new { finishTime = time, position = position });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Result saved. Remember to publish when you are done.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Results), new { id = eventId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PublishResults(int eventId)
+        {
+            try
+            {
+                var result = await _api.PostAsync($"api/result/event/{eventId}/publish", new { });
+
+                if (result.Success)
+                {
+                    TempData["Success"] = "Results published. Participants can now see them.";
+                }
+                else
+                {
+                    TempData["Error"] = result.Error;
+                }
+            }
+            catch (HttpRequestException)
+            {
+                TempData["Error"] = "We could not reach RaceDay right now. Please try again shortly.";
+            }
+
+            return RedirectToAction(nameof(Results), new { id = eventId });
+        }
+
+                public async Task<IActionResult> Dashboard()
+        {
+            var model = new DashboardViewModel();
+
+            try
+            {
+                var events = await _api.GetAsync<List<EventModel>>("api/organizer/events")
+                    ?? new List<EventModel>();
+                var enrolments = await _api.GetAsync<List<OrganiserEnrolmentModel>>("api/enrolment")
+                    ?? new List<OrganiserEnrolmentModel>();
+
+                model.Rows = events
+                    .Select(e => new DashboardEventRow
+                    {
+                        Event = e,
+                        TotalEnrolments = enrolments.Count(x => x.EventID == e.EventID),
+                        PendingEnrolments = enrolments.Count(x => x.EventID == e.EventID && x.Status == "Pending"),
+                        IsUpcoming = e.EventDate.Date >= DateTime.Today,
+                        DaysUntil = (e.EventDate.Date - DateTime.Today).Days
+                    })
+                    .OrderBy(r => r.IsUpcoming ? 0 : 1)
+                    .ThenBy(r => r.IsUpcoming ? r.Event.EventDate : DateTime.MaxValue)
+                    .ThenByDescending(r => r.Event.EventDate)
+                    .ToList();
+
+                model.TotalEvents = model.Rows.Count;
+                model.UpcomingEvents = model.Rows.Count(r => r.IsUpcoming);
+                model.TotalEnrolments = model.Rows.Sum(r => r.TotalEnrolments);
+                model.PendingEnrolments = model.Rows.Sum(r => r.PendingEnrolments);
+            }
+            catch (HttpRequestException)
+            {
+                ViewBag.ApiError = "We could not load your dashboard right now. Please try again shortly.";
+            }
+
+            return View(model);
+        }
+    }
+}

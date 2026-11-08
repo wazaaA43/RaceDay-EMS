@@ -1,0 +1,198 @@
+:root {
+    --rd-navy: #0B1F33;
+    --rd-orange: #C2410C;
+    --rd-orange-dark: #9A3412;
+    --rd-accent: #F97316;
+    --rd-bg: #F5F7FA;
+    --bs-body-font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+html {
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
+}
+
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+body {
+    margin-bottom: 60px;
+    background-color: var(--rd-bg);
+}
+
+/* Headings and brand: bold, condensed, sporty */
+h1, h2, .navbar-brand {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+h3, h4, h5 {
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    font-weight: 700;
+}
+
+a {
+    color: var(--rd-orange);
+}
+
+    a:hover {
+        color: var(--rd-orange-dark);
+    }
+
+/* Navigation bar */
+.rd-navbar {
+    background-color: var(--rd-navy);
+    border-bottom: 3px solid var(--rd-accent);
+}
+
+    .rd-navbar .navbar-brand {
+        color: #fff;
+        font-size: 1.6rem;
+    }
+
+        .rd-navbar .navbar-brand .rd-accent {
+            color: var(--rd-accent);
+        }
+
+    .rd-navbar .nav-link {
+        color: rgba(255, 255, 255, 0.85);
+        border-bottom: 2px solid transparent;
+    }
+
+        .rd-navbar .nav-link:hover {
+            color: #fff;
+        }
+
+        .rd-navbar .nav-link.active {
+            color: #fff;
+            border-bottom-color: var(--rd-accent);
+        }
+
+/* Buttons */
+.btn-primary,
+.btn-primary:focus {
+    background-color: var(--rd-orange);
+    border-color: var(--rd-orange);
+    color: #fff;
+}
+
+    .btn-primary:hover,
+    .btn-primary:active,
+    .btn-primary:focus-visible {
+        background-color: var(--rd-orange-dark);
+        border-color: var(--rd-orange-dark);
+        color: #fff;
+    }
+
+    .btn-primary:disabled {
+        background-color: var(--rd-orange);
+        border-color: var(--rd-orange);
+    }
+
+.btn-outline-primary {
+    color: var(--rd-orange);
+    border-color: var(--rd-orange);
+}
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:active {
+        background-color: var(--rd-orange);
+        border-color: var(--rd-orange);
+        color: #fff;
+    }
+
+.btn-link {
+    color: var(--rd-orange);
+}
+
+    .btn-link:hover {
+        color: var(--rd-orange-dark);
+    }
+
+.btn:focus-visible {
+    box-shadow: 0 0 0 0.2rem rgba(194, 65, 12, 0.35);
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--rd-orange);
+    box-shadow: 0 0 0 0.2rem rgba(194, 65, 12, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--rd-orange);
+    border-color: var(--rd-orange);
+}
+
+/* Cards */
+.card {
+    border: 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(11, 31, 51, 0.12);
+}
+
+    .card.h-100 {
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+        .card.h-100:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 16px rgba(11, 31, 51, 0.18);
+        }
+
+.card-img-top {
+    object-fit: cover;
+    max-height: 220px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card.h-100 {
+        transition: none;
+    }
+
+        .card.h-100:hover {
+            transform: none;
+        }
+}
+
+/* Tables */
+.table thead {
+    --bs-table-bg: var(--rd-navy);
+    --bs-table-color: #fff;
+    --bs-table-border-color: var(--rd-navy);
+}
+
+/* Home page hero */
+.rd-hero {
+    background: linear-gradient(135deg, var(--rd-navy) 0%, #14385c 60%, var(--rd-accent) 140%);
+    color: #fff;
+    border-radius: 0.75rem;
+    padding: 2.5rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+    .rd-hero h1 {
+        margin-bottom: 0.25rem;
+        font-size: 2.5rem;
+    }
+
+    .rd-hero p {
+        margin-bottom: 0;
+        opacity: 0.9;
+    }
+
+.footer {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    white-space: nowrap;
+    line-height: 60px;
+}

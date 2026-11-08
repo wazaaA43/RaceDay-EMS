@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+﻿ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -85,7 +85,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, 1);
 
-            var enrolment = new Enrolment
+            var enrolment = new CreateEnrolmentRequest
             {
                 EventID = 1,
                 CategoryID = 1
@@ -119,7 +119,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, 1);
 
-            var result = await controller.CreateEnrolment(new Enrolment
+            var result = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = 1,
                 CategoryID = 1
@@ -137,7 +137,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, 1);
 
-            var result = await controller.CreateEnrolment(new Enrolment
+            var result = await controller.CreateEnrolment(new CreateEnrolmentRequest
             {
                 EventID = 1,
                 CategoryID = 1

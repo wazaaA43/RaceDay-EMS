@@ -90,7 +90,7 @@ namespace RaceDayAPI.Tests
             using var context = CreateContext();
             var controller = CreateController(context, 10);
 
-            var result = await controller.CreateResult(new Result
+            var result = await controller.CreateResult(new CreateResultRequest
             {
                 EnrolmentID = 1,
                 FinishTime = TimeSpan.Zero,
@@ -106,7 +106,7 @@ namespace RaceDayAPI.Tests
             using var context = CreateContext();
             var controller = CreateController(context, 10);
 
-            var result = await controller.CreateResult(new Result
+            var result = await controller.CreateResult(new CreateResultRequest
             {
                 EnrolmentID = 999,
                 FinishTime = TimeSpan.FromMinutes(30),
@@ -124,7 +124,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, organizerId: 10);
 
-            var result = await controller.CreateResult(new Result
+            var result = await controller.CreateResult(new CreateResultRequest
             {
                 EnrolmentID = 1,
                 FinishTime = TimeSpan.FromMinutes(30),
@@ -142,7 +142,7 @@ namespace RaceDayAPI.Tests
 
             var controller = CreateController(context, organizerId: 10);
 
-            var result = await controller.CreateResult(new Result
+            var result = await controller.CreateResult(new CreateResultRequest
             {
                 EnrolmentID = 1,
                 FinishTime = TimeSpan.FromMinutes(30),

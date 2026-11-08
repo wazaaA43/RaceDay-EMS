@@ -1,0 +1,12 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RaceDay logo">
+	<rect width="64" height="64" rx="14" fill="#EA580C"/>
+	<path d="M6 20 H16 M3 27 H12" fill="none" stroke="#0B1F33" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
+	<circle cx="40" cy="13" r="5.5" fill="#FFFFFF"/>
+	<g fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M37 21 L30 35"/>
+		<path d="M36 24 L45 28 L47 21"/>
+		<path d="M36 24 L27 26 L22 32"/>
+		<path d="M30 35 L41 38 L40 50"/>
+		<path d="M30 35 L21 44 L13 41"/>
+	</g>
+</svg>

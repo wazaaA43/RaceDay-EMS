@@ -12,6 +12,8 @@ namespace RaceDayAPI.Models
 
         public string Email { get; set; }
 
+        public string? ProfilePictureUrl { get; set; }
+
         [JsonIgnore]
         public string PasswordHash { get; set; }
 

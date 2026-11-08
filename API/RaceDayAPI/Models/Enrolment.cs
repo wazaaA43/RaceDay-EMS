@@ -10,6 +10,8 @@
 
         public int CategoryID { get; set; }
 
+        public string Status { get; set; } = "Pending";
+
         public Participant Participant { get; set; }
 
         public Event Event { get; set; }

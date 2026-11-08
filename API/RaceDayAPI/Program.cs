@@ -1,8 +1,10 @@
+using Microsoft.OpenApi.Any;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using RaceDayAPI.Data;
 using RaceDayAPI.Security;
+using RaceDayAPI.Services;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -43,6 +45,8 @@ builder.Services.AddAuthentication(SessionAuthenticationHandler.SchemeName)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddSingleton<IImageStorage, BlobImageStorage>();
+
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
@@ -52,6 +56,13 @@ builder.Services.AddSwaggerGen(options =>
         Title = "RaceDay Event Management API",
         Version = "v1",
         Description = "API for participants and organisers to manage race events, categories, enrolments and results. Log in through the Auth endpoints; the server-side session cookie is then sent automatically by the browser."
+    });
+
+    // Show finish times as "hh:mm:ss" in Swagger instead of the confusing {"ticks": 0} object
+    options.MapType<TimeSpan>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Example = new OpenApiString("00:52:30")
     });
 
     var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";

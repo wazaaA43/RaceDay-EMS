@@ -1,0 +1,74 @@
+﻿@model RaceDayMVC.Models.EventDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Event.EventName;
+    var role = Context.Session.GetString("Role");
+    var isPast = Model.Event.EventDate.Date < DateTime.Today;
+}
+
+<a asp-controller="Home" asp-action="Index" class="btn btn-link ps-0">&larr; Back to events</a>
+
+<div class="card mb-4">
+    @if (!string.IsNullOrEmpty(Model.Event.BannerUrl))
+    {
+        <img src="@Model.Event.BannerUrl" class="card-img-top" alt="Banner for @Model.Event.EventName" />
+    }
+    <div class="card-body">
+        <h1 class="card-title">@Model.Event.EventName</h1>
+        <p>@Model.Event.Description</p>
+        <ul class="list-unstyled mb-0">
+            <li><strong>Date:</strong> @Model.Event.EventDate.ToString("dd MMM yyyy, HH:mm")</li>
+            <li><strong>Location:</strong> @Model.Event.Location</li>
+            <li><strong>Distance:</strong> @Model.Event.Distance km</li>
+            <li><strong>Type:</strong> @Model.Event.EventType</li>
+        </ul>
+    </div>
+</div>
+
+<h2>Categories</h2>
+
+@if (!Model.Categories.Any())
+{
+    <p class="text-muted">No categories have been added to this event yet.</p>
+}
+else if (role == "Participant" && !isPast)
+{
+    <form asp-action="Enrol" method="post">
+        <input type="hidden" name="eventId" value="@Model.Event.EventID" />
+
+        @foreach (var category in Model.Categories)
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="categoryId"
+                       id="category-@category.CategoryID" value="@category.CategoryID" />
+                <label class="form-check-label" for="category-@category.CategoryID">
+                    @category.CategoryName <span class="text-muted">(@category.CategoryType)</span>
+                </label>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-primary mt-3">Enrol</button>
+    </form>
+}
+else
+{
+    <ul class="list-group mb-3">
+        @foreach (var category in Model.Categories)
+        {
+            <li class="list-group-item">@category.CategoryName <span class="text-muted">(@category.CategoryType)</span></li>
+        }
+    </ul>
+
+    @if (isPast)
+    {
+        <div class="alert alert-secondary">This event has already taken place.</div>
+    }
+    else if (role == null)
+    {
+        <p><a asp-controller="Account" asp-action="Login">Log in</a> as a participant to enrol.</p>
+    }
+    else
+    {
+        <p class="text-muted">Organisers cannot enrol in events.</p>
+    }
+}

@@ -1,0 +1,17 @@
+﻿@model RaceDayMVC.Models.EventModel
+
+@{
+    ViewData["Title"] = "Delete Event";
+}
+
+<h1>Delete Event</h1>
+
+<div class="alert alert-warning">
+    Are you sure you want to delete <strong>@Model.EventName</strong> (@Model.EventDate.ToString("dd MMM yyyy"))?
+    An event that already has enrolments or categories cannot be deleted.
+</div>
+
+<form asp-action="DeleteEvent" asp-route-id="@Model.EventID" method="post">
+    <button type="submit" class="btn btn-danger">Yes, delete</button>
+    <a asp-action="Events" class="btn btn-link">Cancel</a>
+</form>

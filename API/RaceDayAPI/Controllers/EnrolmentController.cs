@@ -125,7 +125,7 @@ namespace RaceDayAPI.Controllers
         /// <summary>
         /// Participant only. Enters an event by selecting one of its categories. The link between participant, event and category is recorded; the participant is taken from the token.
         /// </summary>
-        /// <param name="enrolment">The EventID and the CategoryID being entered.</param>
+        /// <param name="request">The EventID and the CategoryID being entered.</param>
         /// <returns>The newly created enrolment.</returns>
         /// <response code="201">Enrolment recorded.</response>
         /// <response code="400">Event missing or passed, category not part of the event, or already enrolled.</response>
@@ -137,10 +137,10 @@ namespace RaceDayAPI.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [Authorize(Roles = "Participant")]
         [HttpPost]
-        public async Task<ActionResult<Enrolment>> CreateEnrolment(Enrolment enrolment)
+        public async Task<ActionResult<Enrolment>> CreateEnrolment(CreateEnrolmentRequest request)
         {
             var eventExists = await _context.Events
-                .AnyAsync(e => e.EventID == enrolment.EventID &&
+                .AnyAsync(e => e.EventID == request.EventID &&
                                e.EventDate >= DateTime.Today);
 
             if (!eventExists)
@@ -149,8 +149,8 @@ namespace RaceDayAPI.Controllers
             }
 
             var categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryID == enrolment.CategoryID &&
-                               c.EventID == enrolment.EventID);
+                .AnyAsync(c => c.CategoryID == request.CategoryID &&
+                               c.EventID == request.EventID);
 
             if (!categoryExists)
             {
@@ -161,14 +161,19 @@ namespace RaceDayAPI.Controllers
 
             var duplicate = await _context.Enrolments.AnyAsync(e =>
                 e.ParticipantID == participantId &&
-                e.EventID == enrolment.EventID);
+                e.EventID == request.EventID);
 
             if (duplicate)
             {
                 return BadRequest("You are already enrolled in this event.");
             }
 
-            enrolment.ParticipantID = participantId;
+            var enrolment = new Enrolment
+            {
+                ParticipantID = participantId,
+                EventID = request.EventID,
+                CategoryID = request.CategoryID
+            };
 
             _context.Enrolments.Add(enrolment);
             await _context.SaveChangesAsync();
@@ -177,6 +182,63 @@ namespace RaceDayAPI.Controllers
                 nameof(GetEnrolment),
                 new { id = enrolment.EnrolmentID },
                 enrolment);
+        }
+
+        // PUT: api/enrolment/1/status
+        /// <summary>
+        /// Organiser only. Sets an enrolment's status to Pending or Confirmed, provided the enrolment is for one of the organiser's own events.
+        /// </summary>
+        /// <param name="id">The enrolment ID.</param>
+        /// <param name="request">The new status: "Pending" or "Confirmed".</param>
+        /// <returns>No content when successful.</returns>
+        /// <response code="204">Status updated (no content returned).</response>
+        /// <response code="400">Status is not Pending or Confirmed.</response>
+        /// <response code="401">Not logged in: log in first.</response>
+        /// <response code="403">Not an Organiser, or the event belongs to another organiser.</response>
+        /// <response code="404">Enrolment not found.</response>
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Organiser")]
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateEnrolmentStatus(int id, UpdateEnrolmentStatusRequest request)
+        {
+            string? status = null;
+
+            if (string.Equals(request.Status, "Pending", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Pending";
+            }
+            else if (string.Equals(request.Status, "Confirmed", StringComparison.OrdinalIgnoreCase))
+            {
+                status = "Confirmed";
+            }
+
+            if (status == null)
+            {
+                return BadRequest("Status must be Pending or Confirmed.");
+            }
+
+            var enrolment = await _context.Enrolments
+                .Include(e => e.Event)
+                .FirstOrDefaultAsync(e => e.EnrolmentID == id);
+
+            if (enrolment == null)
+            {
+                return NotFound();
+            }
+
+            if (enrolment.Event.OrganizerID != GetUserId())
+            {
+                return Forbid();
+            }
+
+            enrolment.Status = status;
+            await _context.SaveChangesAsync();
+
+            return NoContent();
         }
 
         // DELETE: api/enrolment/1

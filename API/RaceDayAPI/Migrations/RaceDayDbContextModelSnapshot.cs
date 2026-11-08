@@ -65,6 +65,10 @@ namespace RaceDayAPI.Migrations
                     b.Property<int>("ParticipantID")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("EnrolmentID");
 
                     b.HasIndex("CategoryID");
@@ -83,6 +87,9 @@ namespace RaceDayAPI.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventID"));
+
+                    b.Property<string>("BannerUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -170,6 +177,9 @@ namespace RaceDayAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ProfilePictureUrl")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("ParticipantID");
 
                     b.ToTable("Participants");
@@ -188,6 +198,9 @@ namespace RaceDayAPI.Migrations
 
                     b.Property<TimeSpan>("FinishTime")
                         .HasColumnType("time");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Position")
                         .HasColumnType("int");

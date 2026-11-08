@@ -1,0 +1,64 @@
+﻿@model List<RaceDayMVC.Models.EnrolmentModel>
+
+@{
+    ViewData["Title"] = "My Enrolments";
+}
+
+<h1>My Enrolments</h1>
+
+@if (ViewBag.ApiError != null)
+{
+    <div class="alert alert-danger">@ViewBag.ApiError</div>
+}
+else if (!Model.Any())
+{
+    <p class="text-muted">
+        You have not enrolled in any events yet.
+        <a asp-controller="Home" asp-action="Index">Browse upcoming events</a>.
+    </p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Location</th>
+                    <th>Category</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var badge = item.Status == "Confirmed" ? "bg-success"
+                    : item.Status == "Pending" ? "bg-warning text-dark"
+                    : "bg-secondary";
+                    var canCancel = item.Event != null && item.Event.EventDate.Date >= DateTime.Today;
+
+                    <tr>
+                        <td>
+                            <a asp-controller="Events" asp-action="Details" asp-route-id="@item.EventID">@item.Event?.EventName</a>
+                        </td>
+                        <td>@item.Event?.EventDate.ToString("dd MMM yyyy")</td>
+                        <td>@item.Event?.Location</td>
+                        <td>@item.Category?.CategoryName</td>
+                        <td><span class="badge @badge">@item.Status</span></td>
+                        <td class="text-end">
+                            @if (canCancel)
+                            {
+                                <form asp-action="CancelEnrolment" asp-route-id="@item.EnrolmentID" method="post" class="d-inline"
+                                      onsubmit="return confirm('Cancel your enrolment in this event?');">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">Cancel enrolment</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
