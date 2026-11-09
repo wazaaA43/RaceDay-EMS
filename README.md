@@ -10,7 +10,7 @@ RaceDay is an ASP.NET Core Web API (Part 2) with an ASP.NET Core MVC web applica
 
 Part 3 adds an ASP.NET Core MVC web application (`MVC/RaceDayMVC`) that consumes the RaceDay API (`API/RaceDayAPI`). The two projects are separate: each has its own solution and runs on its own address, and they communicate only through HTTP requests. The MVC project contains no database code. Part 3 development was done on the `part3-mvc` branch.
 
-**Demo video (unlisted YouTube):** Coming soon
+**Demo video (unlisted YouTube):** https://youtu.be/Rx3vzYa7y8k
 
 ## How it works
 
